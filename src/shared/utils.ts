@@ -51,7 +51,29 @@ export function extractEmails(text: string): string[] {
 }
 
 export function extractPhones(text: string): string[] {
-  return unique([...text.matchAll(phonePattern)].map((match) => match[0]));
+  const phones: string[] = [];
+  for (const match of text.matchAll(phonePattern)) {
+    const value = match[0];
+    const index = match.index ?? 0;
+    const line = lineAround(text, index);
+    if (/\bhttps?:|www\.|\.jpe?g\b|\.png\b|\.webp\b|wp-content|uploads|image|asset/i.test(line)) continue;
+    const digits = value.replace(/\D/g, "");
+    const normalizedDigits = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+    if (normalizedDigits.length !== 10) continue;
+    if (/^(\d)\1{9}$/.test(normalizedDigits)) continue;
+    const context = text.slice(Math.max(0, index - 32), Math.min(text.length, index + value.length + 32)).toLowerCase();
+    const hasPhoneContext = /\b(phone|tel|call|text|mobile|contact|sms)\b/.test(context);
+    const hasHumanFormatting = /[().\s-]/.test(value.replace(/^\+?1/, ""));
+    if (!hasHumanFormatting && !hasPhoneContext) continue;
+    phones.push(value);
+  }
+  return unique(phones, (phone) => phone.replace(/\D/g, "").replace(/^1(?=\d{10}$)/, ""));
+}
+
+function lineAround(text: string, index: number): string {
+  const start = text.lastIndexOf("\n", index);
+  const end = text.indexOf("\n", index);
+  return text.slice(start === -1 ? 0 : start + 1, end === -1 ? text.length : end);
 }
 
 export function inferRestaurantName(title: string, domain: string): string {

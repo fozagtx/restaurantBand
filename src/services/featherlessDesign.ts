@@ -158,7 +158,7 @@ function requireText(value: unknown, field: string): string {
 
 async function extractGeneratedAssets(parsed: FeatherlessPromptResponse | null, rawText: string, lead: RestaurantLead): Promise<GeneratedAsset[]> {
   const assets: GeneratedAsset[] = [];
-  if (parsed?.imageUrl) assets.push({ kind: "image_url", value: parsed.imageUrl });
+  if (parsed?.imageUrl && !isSourceImageUrl(parsed.imageUrl, lead)) assets.push({ kind: "image_url", value: parsed.imageUrl });
   if (parsed?.imageBase64) assets.push({ kind: "image_file", value: await saveBase64Image(parsed.imageBase64, lead.name) });
 
   const dataUrlMatch = rawText.match(/data:image\/(?:png|jpeg|jpg|webp);base64,([A-Za-z0-9+/=]+)/);
@@ -167,10 +167,14 @@ async function extractGeneratedAssets(parsed: FeatherlessPromptResponse | null, 
   }
 
   const markdownImageUrl = rawText.match(/!\[[^\]]*]\((https?:\/\/[^)\s]+)\)/);
-  if (markdownImageUrl?.[1]) assets.push({ kind: "image_url", value: markdownImageUrl[1] });
+  if (markdownImageUrl?.[1] && !isSourceImageUrl(markdownImageUrl[1], lead)) assets.push({ kind: "image_url", value: markdownImageUrl[1] });
 
   if (!parsed && rawText.trim()) assets.push({ kind: "raw_text", value: rawText.trim() });
   return assets;
+}
+
+function isSourceImageUrl(url: string, lead: RestaurantLead): boolean {
+  return lead.imageUrls.some((sourceUrl) => sourceUrl === url) || lead.sourceUrls.some((sourceUrl) => sourceUrl === url);
 }
 
 async function saveBase64Image(base64Input: string, restaurantName: string): Promise<string> {

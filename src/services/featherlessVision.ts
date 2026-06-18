@@ -105,19 +105,19 @@ async function selectUsableImageUrls(urls: string[], limit: number): Promise<str
 }
 
 async function isUsableImageUrl(url: string): Promise<boolean> {
-  return (await checkImageUrl(url, "HEAD")) || (await checkImageUrl(url, "GET"));
+  return checkImageUrl(url);
 }
 
-async function checkImageUrl(url: string, method: "HEAD" | "GET"): Promise<boolean> {
+async function checkImageUrl(url: string): Promise<boolean> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10_000);
   try {
     const response = await fetch(url, {
-      method,
+      method: "GET",
       redirect: "follow",
       headers: {
         "User-Agent": "restaurant-pitch-agents/0.1 image-preflight",
-        ...(method === "GET" ? { Range: "bytes=0-0" } : {})
+        Range: "bytes=0-0"
       },
       signal: controller.signal
     });

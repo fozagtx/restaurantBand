@@ -41,6 +41,11 @@ type ExaResult = {
 };
 
 type ExaSearchType = "fast" | "auto" | "deep" | "deep-reasoning";
+type WebsiteValidation = {
+  ok: boolean;
+  reason: string;
+  finalUrl?: string;
+};
 
 export class ExaResearchClient {
   private readonly config: RuntimeConfig;
@@ -133,6 +138,12 @@ export async function findRestaurantCandidates(input: {
     const primary = domainResults[0];
     if (!primary) continue;
     const name = inferRestaurantName(primary.title, domain);
+    const websiteValidation = await validateOfficialWebsite(primary.url);
+    if (!websiteValidation.ok) {
+      skippedUnqualified += 1;
+      notes.push(`Skipped ${name}: ${websiteValidation.reason}`);
+      continue;
+    }
     const contactResults = await client.search(
       `${name} ${input.location} restaurant contact email menu food photos official website catering owner`,
       { numResults: input.searchMode === "deep" ? 6 : 4, includeDomains: [domain], exaSearchType: input.exaSearchType }
@@ -149,8 +160,9 @@ export async function findRestaurantCandidates(input: {
     );
     const allResults = unique([...domainResults, ...contactResults, ...socialResults, ...peopleResults], (result) => result.url);
     const flatText = allResults.map((result) => [result.title, result.url, result.text, ...result.highlights].join("\n")).join("\n\n");
-    const emails = extractEmails(flatText);
-    const phones = extractPhones(flatText);
+    const contactText = allResults.map((result) => [result.title, result.text, ...result.highlights].join("\n")).join("\n\n");
+    const emails = extractEmails(contactText);
+    const phones = extractPhones(contactText);
     const contactPeople = extractContactPeople(allResults);
     const menuUrls = unique(allResults.filter((result) => maybeMenuUrl(result.url, result.title, result.text)).map((result) => result.url));
     const socialUrls = unique(allResults.filter((result) => isSocialUrl(result.url)).map((result) => result.url));
@@ -165,8 +177,8 @@ export async function findRestaurantCandidates(input: {
     }));
     const lead: CandidateLead = {
       name,
-      website: primary.url,
-      domain,
+      website: websiteValidation.finalUrl ?? primary.url,
+      domain: cleanDomain(websiteValidation.finalUrl ?? primary.url),
       location: input.location,
       cuisine: input.cuisine,
       emails,
@@ -213,18 +225,62 @@ export async function findRestaurantCandidates(input: {
 }
 
 function isQualifiedCandidate(lead: CandidateLead): boolean {
-  const hasContactPath =
-    lead.emails.length > 0 ||
-    lead.phones.length > 0 ||
-    lead.contactPeople.length > 0 ||
-    lead.socialUrls.length > 0 ||
-    lead.sourceUrls.some(isContactUrl);
+  const hasContactPath = lead.emails.length > 0 || lead.phones.length > 0 || lead.sourceUrls.some((url) => isOfficialContactUrl(url, lead.domain));
   const hasPitchEvidence = lead.imageUrls.length > 0 || lead.menuUrls.length > 0;
   return hasContactPath && hasPitchEvidence;
 }
 
-function isContactUrl(url: string): boolean {
-  return /\b(contact|about|team|owner|chef|catering|events)\b/i.test(url);
+function isOfficialContactUrl(url: string, domain: string): boolean {
+  try {
+    return cleanDomain(url) === domain && /\b(contact|about|team|owner|chef|catering|events)\b/i.test(new URL(url).pathname);
+  } catch {
+    return false;
+  }
+}
+
+async function validateOfficialWebsite(url: string): Promise<WebsiteValidation> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12_000);
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      redirect: "follow",
+      headers: { "User-Agent": "restaurant-pitch-agents/0.1 website-validator" },
+      signal: controller.signal
+    });
+    if (!response.ok) return { ok: false, reason: `official website did not load (${response.status})` };
+    const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+    if (!contentType.includes("text/html")) return { ok: false, reason: `official website returned ${contentType || "non-HTML content"}` };
+    const html = await response.text();
+    const reason = rejectWebsiteReason(html, response.url);
+    if (reason) return { ok: false, reason };
+    return { ok: true, reason: "loaded", finalUrl: response.url };
+  } catch (error) {
+    return { ok: false, reason: `official website fetch failed: ${error instanceof Error ? error.name : String(error)}` };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function rejectWebsiteReason(html: string, url: string): string | null {
+  const lower = html.toLowerCase();
+  if (lower.includes('name="robots" content="noindex"') && /\b(coming soon|under construction|check back|parking page)\b/.test(lower)) {
+    return "official website is a noindex coming-soon/under-construction page";
+  }
+  if (/\b(coming soon|under construction|domain for sale|this domain is parked|please check back for an update soon)\b/.test(lower)) {
+    return "official website appears to be parked or under construction";
+  }
+  if (lower.includes("squarespace-logo") && lower.includes("parking-page")) {
+    return "official website is a Squarespace parking page";
+  }
+  if (stripTags(html).trim().length < 500) {
+    return `official website has too little visible content (${url})`;
+  }
+  return null;
+}
+
+function stripTags(html: string): string {
+  return html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 }
 
 function normalizeExaResult(raw: ExaRawResult): ExaResult | null {
@@ -291,6 +347,7 @@ function normalizePersonMatch(match: RegExpMatchArray): { name: string; role: st
   if (!name) return null;
   const blocked = ["New York", "Los Angeles", "San Francisco", "Austin Texas", "Contact Us", "Order Online", "Privacy Policy"];
   if (blocked.some((item) => item.toLowerCase() === name.toLowerCase())) return null;
+  if (/\b(Restaurant|Group|LLC|Inc|Menu|Order|Online|Facebook|Instagram|LinkedIn)\b/i.test(name)) return null;
   return {
     name,
     role: role?.toLowerCase() ?? "owner/founder/chef/manager mention"

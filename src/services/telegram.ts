@@ -32,21 +32,18 @@ export async function sendDesignPackageToTelegram(designPackage: DesignPackage, 
 export function formatDigest(designPackage: DesignPackage): string {
   const copyByName = new Map(designPackage.copyPackage.copy.map((copy) => [copy.restaurantName, copy]));
   const lines: string[] = [
-    `${designPackage.agencyName} restaurant lead digest`,
+    `${designPackage.agencyName} validated restaurant leads`,
     `Location: ${designPackage.copyPackage.location}`,
     `Cuisine: ${designPackage.copyPackage.cuisine}`,
-    `Exa requests: ${designPackage.copyPackage.research.exaRequestCount}`,
-    `Featherless concepts: ${designPackage.concepts.length}`,
+    `Ready leads: ${designPackage.concepts.length}`,
     ""
   ];
 
-  lines.push("Collaboration log:");
-  for (const event of designPackage.copyPackage.research.collaborationLog) {
-    lines.push(`- ${event.at} | ${event.agent} | ${event.action}: ${event.details}`);
+  if (designPackage.copyPackage.research.notes.length) {
+    lines.push("Screening notes:");
+    designPackage.copyPackage.research.notes.forEach((note) => lines.push(`- ${note}`));
+    lines.push("");
   }
-  lines.push("");
-  lines.push("---");
-  lines.push("");
 
   designPackage.concepts.forEach((concept, index) => {
     const lead = designPackage.copyPackage.research.leads.find((item) => item.name === concept.restaurantName);
@@ -54,21 +51,13 @@ export function formatDigest(designPackage: DesignPackage): string {
     lines.push(`${index + 1}. ${concept.restaurantName}`);
     lines.push(`Website: ${concept.website}`);
     if (lead) {
-      lines.push(`Emails: ${lead.emails.length ? lead.emails.join(", ") : "Not found"}`);
-      lines.push(`Phones: ${lead.phones.length ? lead.phones.join(", ") : "Not found"}`);
-      lines.push(`Socials: ${lead.socialUrls.length ? lead.socialUrls.join(", ") : "Not found"}`);
-      lines.push(
-        `People: ${
-          lead.contactPeople.length
-            ? lead.contactPeople.map((person) => `${person.name} (${person.role}) - ${person.sourceUrl}`).join("; ")
-            : "Not found"
-        }`
-      );
-      lines.push(`Visual score: ${lead.visualOpportunityScore}/100`);
-      lines.push(`Reason: ${lead.visualOpportunityReason}`);
-      lines.push(
-        `Image audit: ${lead.imageAudit.status === "audited" ? `${lead.imageAudit.verdict}, ${lead.imageAudit.boringScore}/100 boring score via ${lead.imageAudit.model}` : "not audited; no image URLs found"}`
-      );
+      lines.push(`Contact: ${formatContactPath(lead)}`);
+      if (lead.contactPeople.length) {
+        lines.push(`Named person: ${lead.contactPeople.map((person) => `${person.name} (${person.role})`).join("; ")}`);
+      }
+      lines.push(`Validation: official site loaded, contact path found, usable visual/menu evidence found`);
+      lines.push(`Visual opportunity: ${lead.visualOpportunityScore}/100`);
+      lines.push(`Why it is worth pitching: ${lead.visualOpportunityReason}`);
     }
     if (copy) {
       lines.push("");
@@ -82,18 +71,36 @@ export function formatDigest(designPackage: DesignPackage): string {
       lines.push(copy.instagramDm);
     }
     lines.push("");
-    lines.push(`Featherless model: ${concept.featherlessModel}`);
-    lines.push("Image prompt:");
+    lines.push("Hero image concept:");
     lines.push(concept.imagePrompts[0] ?? "No prompt returned");
     lines.push("");
-    lines.push("Menu footer prompt:");
+    lines.push("Menu footer concept:");
     lines.push(concept.menuFooterPrompt);
-    lines.push("");
-    lines.push("Assets:");
-    concept.generatedAssets.forEach((asset) => lines.push(`- ${asset.kind}: ${truncate(asset.value, 800)}`));
+    const generatedFiles = concept.generatedAssets.filter((asset) => asset.kind === "image_file");
+    if (generatedFiles.length) {
+      lines.push("");
+      lines.push("Generated files:");
+      generatedFiles.forEach((asset) => lines.push(`- ${truncate(asset.value, 800)}`));
+    }
     lines.push("\n---\n");
   });
   return lines.join("\n");
+}
+
+function formatContactPath(lead: DesignPackage["copyPackage"]["research"]["leads"][number]): string {
+  const values = [
+    ...lead.emails,
+    ...lead.phones,
+    ...lead.sourceUrls.filter((url) => {
+      try {
+        const parsed = new URL(url);
+        return /\b(contact|about|team|owner|chef|catering|events)\b/i.test(parsed.pathname);
+      } catch {
+        return false;
+      }
+    })
+  ];
+  return values.length ? values.join(", ") : "Not found";
 }
 
 async function sendTelegramMessage(text: string, config: RuntimeConfig): Promise<void> {
