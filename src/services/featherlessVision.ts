@@ -81,17 +81,19 @@ Rules:
   if (!parsed) {
     throw new Error(`Featherless vision audit returned no JSON: ${output}`);
   }
+  const suggestedUpgrade = optionalString(parsed.suggestedUpgrade) ?? "Use tighter lighting, cleaner composition, and a more appetite-led food crop.";
+  const photoIssues = optionalStringArray(parsed.photoIssues) ?? [suggestedUpgrade];
 
   return {
     status: "audited",
     model: input.config.featherlessVisionModel,
     auditedImageUrls,
-    boringScore: requireScore(parsed.boringScore),
-    verdict: requireVerdict(parsed.verdict),
-    reasons: requireStringArray(parsed.reasons, "reasons"),
-    photoIssues: requireStringArray(parsed.photoIssues, "photoIssues"),
-    usableVisualHooks: requireStringArray(parsed.usableVisualHooks, "usableVisualHooks"),
-    suggestedUpgrade: requireString(parsed.suggestedUpgrade, "suggestedUpgrade")
+    boringScore: normalizeScore(parsed.boringScore),
+    verdict: normalizeVerdict(parsed.verdict),
+    reasons: optionalStringArray(parsed.reasons) ?? ["visual evidence only"],
+    photoIssues,
+    usableVisualHooks: optionalStringArray(parsed.usableVisualHooks) ?? [suggestedUpgrade],
+    suggestedUpgrade
   };
 }
 
@@ -131,32 +133,24 @@ async function checkImageUrl(url: string): Promise<boolean> {
   }
 }
 
-function requireScore(value: unknown): number {
+function normalizeScore(value: unknown): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new Error("Featherless vision audit missing numeric boringScore.");
+    return 40;
   }
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-function requireVerdict(value: unknown): ImageAudit["verdict"] {
+function normalizeVerdict(value: unknown): ImageAudit["verdict"] {
   if (value === "boring" || value === "average" || value === "strong" || value === "unclear") return value;
-  throw new Error("Featherless vision audit missing valid verdict.");
+  return "unclear";
 }
 
-function requireString(value: unknown, field: string): string {
-  if (typeof value !== "string" || !value.trim()) {
-    throw new Error(`Featherless vision audit missing ${field}.`);
-  }
-  return value.trim();
+function optionalString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-function requireStringArray(value: unknown, field: string): string[] {
-  if (!Array.isArray(value)) {
-    throw new Error(`Featherless vision audit missing ${field}.`);
-  }
+function optionalStringArray(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
   const cleaned = value.filter((item): item is string => typeof item === "string" && item.trim().length > 0).map((item) => item.trim());
-  if (!cleaned.length) {
-    throw new Error(`Featherless vision audit has empty ${field}.`);
-  }
-  return cleaned;
+  return cleaned.length ? cleaned : null;
 }

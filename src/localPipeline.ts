@@ -38,10 +38,10 @@ async function main(): Promise<void> {
   }
 
   const copyPackage = await composeCopyPackage(research, config);
-  console.log("Copywriter completed outreach copy with Featherless core.");
+  console.log("Copywriter completed expert outreach copy.");
 
   const designPackage = await createDesignPackage(copyPackage, config);
-  console.log(`Design agent completed ${designPackage.concepts.length} Featherless concepts.`);
+  console.log(`Design agent completed ${designPackage.concepts.length} image asset packages.`);
 
   await mkdir("outputs", { recursive: true });
   const outputPath = `outputs/${slugify(`${options.location}-${options.cuisine}`)}-${Date.now()}.json`;

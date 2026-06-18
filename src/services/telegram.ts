@@ -1,4 +1,3 @@
-import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 
 import { loadConfig, type RuntimeConfig } from "../shared/config.js";
@@ -17,7 +16,7 @@ export async function sendDesignPackageToTelegram(designPackage: DesignPackage, 
   for (const concept of designPackage.concepts) {
     for (const asset of concept.generatedAssets) {
       if (asset.kind === "image_file") {
-        await sendTelegramPhoto(asset.value, `${concept.restaurantName} Featherless image asset`, config);
+        await sendTelegramPhoto(asset.value, `${concept.restaurantName} generated image asset`, config);
         imageCount += 1;
       }
       if (asset.kind === "image_url") {
@@ -32,7 +31,7 @@ export async function sendDesignPackageToTelegram(designPackage: DesignPackage, 
 export function formatDigest(designPackage: DesignPackage): string {
   const copyByName = new Map(designPackage.copyPackage.copy.map((copy) => [copy.restaurantName, copy]));
   const lines: string[] = [
-    `${designPackage.agencyName} validated restaurant leads`,
+    `${designPackage.agencyName} validated restaurant outreach packet`,
     `Location: ${designPackage.copyPackage.location}`,
     `Cuisine: ${designPackage.copyPackage.cuisine}`,
     `Ready leads: ${designPackage.concepts.length}`,
@@ -55,9 +54,10 @@ export function formatDigest(designPackage: DesignPackage): string {
       if (lead.contactPeople.length) {
         lines.push(`Named person: ${lead.contactPeople.map((person) => `${person.name} (${person.role})`).join("; ")}`);
       }
-      lines.push(`Validation: official site loaded, contact path found, usable visual/menu evidence found`);
-      lines.push(`Visual opportunity: ${lead.visualOpportunityScore}/100`);
-      lines.push(`Why it is worth pitching: ${lead.visualOpportunityReason}`);
+      lines.push(`Validation: official site, contact path, and usable visual/menu evidence found`);
+      lines.push(`Priority: ${lead.visualOpportunityScore}/100`);
+      lines.push(`Expert read: ${formatExpertRead(lead)}`);
+      lines.push(`Offer: 2 mockups: one hero/menu image and one social crop.`);
     }
     if (copy) {
       lines.push("");
@@ -69,22 +69,44 @@ export function formatDigest(designPackage: DesignPackage): string {
       lines.push("");
       lines.push("DM:");
       lines.push(copy.instagramDm);
+      lines.push("");
+      lines.push("SMS:");
+      lines.push(copy.smsVariant);
     }
     lines.push("");
-    lines.push("Hero image concept:");
-    lines.push(concept.imagePrompts[0] ?? "No prompt returned");
-    lines.push("");
-    lines.push("Menu footer concept:");
-    lines.push(concept.menuFooterPrompt);
+    lines.push("Creative direction:");
+    lines.push(concept.visualDirection);
     const generatedFiles = concept.generatedAssets.filter((asset) => asset.kind === "image_file");
     if (generatedFiles.length) {
       lines.push("");
-      lines.push("Generated files:");
+      lines.push("Generated image file:");
       generatedFiles.forEach((asset) => lines.push(`- ${truncate(asset.value, 800)}`));
     }
     lines.push("\n---\n");
   });
   return lines.join("\n");
+}
+
+function formatExpertRead(lead: DesignPackage["copyPackage"]["research"]["leads"][number]): string {
+  const issue = lead.imageAudit.photoIssues[0] ?? lead.imageAudit.suggestedUpgrade ?? lead.visualOpportunityReason;
+  const cleaned = stripInternalTerms(issue);
+  if (/overhead shot lacks dynamic angle/i.test(cleaned)) return "Current food image uses an overhead angle, so the dish needs a tighter, more dimensional hero crop.";
+  if (/underlit|flat/i.test(cleaned)) return "Current food image reads underlit or flat, so the pitch should lead with stronger side light and texture.";
+  if (/background.*distract/i.test(cleaned)) return "Current image has background distractions, so the mockup should simplify the table setting and bring the food forward.";
+  if (/low-resolution|pixelation/i.test(cleaned)) return "Some public visuals look low-resolution, so the offer should focus on clean web/social-ready image assets.";
+  if (/no food( photography)?|no food or menu items shown/i.test(cleaned)) return "Current page does not show the food early enough, so the pitch should lead with a clear hero/menu image.";
+  return cleaned || "The lead has enough menu/visual evidence for a focused image merchandising pitch.";
+}
+
+function stripInternalTerms(value: string): string {
+  return value
+    .replace(/Featherless vision audit:?\s*/gi, "")
+    .replace(/\([^)]*boring score[^)]*\)/gi, "")
+    .replace(/\bboring score\b/gi, "visual score")
+    .replace(/\bboring\b/gi, "flat")
+    .replace(/\baverage\b/gi, "serviceable")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function formatContactPath(lead: DesignPackage["copyPackage"]["research"]["leads"][number]): string {

@@ -20,7 +20,7 @@ export function createFoodDesignDirectorAdapter(): GenericAdapter {
       await tools.sendMessage("Food Design Director received zero copy packs, so no design package was sent to Telegram.", [{ id: message.senderId }]);
       return;
     }
-    await reportProgress(tools, `Food Design Director received ${copyPackage.copy.length} copy packs and is calling Featherless image/design model.`);
+    await reportProgress(tools, `Food Design Director received ${copyPackage.copy.length} copy packs and is building the image asset package.`);
     const designPackage = designPackageSchema.parse(await createDesignPackage(copyPackage, config));
     designPackage.copyPackage.research.collaborationLog.push(
       action("Food Design Director", "telegram_delivery", `Sent final digest to Telegram chat ${config.telegramChatId}.`)

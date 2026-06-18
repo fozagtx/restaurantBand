@@ -111,10 +111,11 @@ function buildOpenAiImagePrompt(lead: RestaurantLead, basePrompt: string): strin
   return [
     basePrompt,
     "",
-    `Create a finished, high-end, photorealistic food marketing image for ${lead.name}.`,
-    "Do not include text, logos, watermarks, menus, brand marks, or fake signage.",
-    "Make it look like a real restaurant-quality web/social visual asset, with appetizing food styling, natural light, and polished composition.",
-    `Cuisine/category: ${lead.cuisine}. Location context: ${lead.location}.`
+    `Create a finished, premium restaurant marketing image for ${lead.name}.`,
+    "Act like a senior food photographer shooting a real web/menu hero asset: appetite first, clear focal dish, controlled props, believable restaurant table setting.",
+    "Use directional natural light, crisp texture, shallow depth of field, warm highlights, clean negative space for real HTML text, and a crop that works on mobile.",
+    "Avoid fake text, logos, watermarks, menus, signage, hands, distorted plates, plastic-looking food, and over-styled stock-photo compositions.",
+    `Cuisine/category: ${lead.cuisine}. Location context: ${lead.location}. Visual issue to solve: ${buildDesignIssue(lead)}.`
   ].join("\n");
 }
 
@@ -159,11 +160,11 @@ async function generateOpenAiImageAsset(prompt: string, restaurantName: string, 
 }
 
 function buildVisualDirection(lead: RestaurantLead): string {
-  return `Food-first visual refresh for a local ${lead.cuisine} restaurant. Use natural light, richer texture, tighter plating, realistic local-restaurant styling, and assets usable on a website footer, Instagram, and outreach sample.`;
+  return `Restaurant merchandising direction: solve this issue: ${buildDesignIssue(lead)}. Create one food-first hero/menu image and one social crop with natural side light, tighter composition, visible texture, restrained props, and mobile-safe negative space.`;
 }
 
 async function callFeatherlessImageModel(lead: RestaurantLead, seedPrompts: string[], config: RuntimeConfig): Promise<string> {
-  const prompt = `You are the image/design agent in a Band multi-agent workflow.
+  const prompt = `You are the senior food photography art director for this restaurant lead.
 
 Use the restaurant research below to create image-generation-ready assets for outreach.
 Return only JSON with:
@@ -175,11 +176,18 @@ Return only JSON with:
   "notes": "short implementation note"
 }
 
-Important:
-- Use the Featherless image/prompt model to enhance food visuals.
+Expertise activation:
+- Think like a restaurant menu merchandiser, food stylist, and conversion-focused web designer.
+- Solve the exact weakness from the image audit instead of writing a generic food prompt.
+- Design for the assets a small restaurant owner can actually use tomorrow: website hero/menu banner, Instagram square, and menu/footer background.
+- Specify lighting, angle, crop, focal hierarchy, surface/plate context, texture cues, and negative space.
+
+Hard rules:
 - Do not invent exact dish names unless the evidence says them.
+- Do not render text, logos, fake menu boards, signage, watermarks, brand marks, or claims.
+- Do not mention model names or internal audit scores in the prompts.
 - If you cannot return an actual image binary/URL, return strong prompts only.
-- No logos, no false claims, no copyrighted brand marks.
+- Keep each prompt under 95 words.
 
 Restaurant lead:
 ${JSON.stringify(lead, null, 2)}
@@ -192,7 +200,7 @@ ${seedPrompts.map((item, index) => `${index + 1}. ${item}`).join("\n")}`;
     baseUrl: config.featherlessBaseUrl,
     model: config.featherlessImageModel,
     messages: [
-      { role: "system", content: "You are a visual direction model for restaurant food image generation prompts." },
+      { role: "system", content: "You are a senior food photography art director and restaurant web conversion designer. Return valid JSON only." },
       { role: "user", content: prompt }
     ],
     temperature: config.featherlessTemperature,
@@ -202,11 +210,27 @@ ${seedPrompts.map((item, index) => `${index + 1}. ${item}`).join("\n")}`;
 
 function buildSeedPrompts(lead: RestaurantLead): string[] {
   const sourceHint = lead.imageUrls[0] ? `Current search image reference for visual context: ${lead.imageUrls[0]}.` : "";
+  const designIssue = buildDesignIssue(lead);
   return [
-    `Photorealistic hero food image for ${lead.name}, a ${lead.cuisine} restaurant in ${lead.location}. Natural window light, fresh ingredients, appetizing texture, shallow depth of field, website hero crop, no text, no logos. ${sourceHint}`,
-    `Square Instagram-ready promo image for ${lead.name}. Show an appetizing ${lead.cuisine} dish on a clean table, warm side light, crisp garnish, high contrast, realistic plating, space for caption overlay but no rendered text.`,
-    `Wide menu footer background for ${lead.name}: subtle close-up of ${lead.cuisine} ingredients and plated food, lower contrast center area for contact text, realistic photography, no text.`
+    `Website hero/menu image for ${lead.name}, a ${lead.cuisine} restaurant in ${lead.location}. Solve this visual issue: ${designIssue}. Shoot a real plated dish in a 3/4 angle, natural side light, crisp texture, warm highlights, shallow depth of field, mobile-safe negative space, believable restaurant table setting, no text, no logos. ${sourceHint}`,
+    `Square Instagram crop for ${lead.name}. Close, appetite-led composition with one clear focal dish, visible texture, restrained garnish, clean plate edge, soft background, warm side light, no rendered text, no fake signage, no logos. Designed to make the menu item easy to choose in a social feed.`,
+    `Wide 3:1 menu/footer background for ${lead.name}. Low-contrast close-up of plated ${lead.cuisine} food and ingredients along the edges, calm center/right negative space for real HTML contact text, realistic restaurant lighting, no rendered text, no logos, no menu board.`
   ];
+}
+
+function buildDesignIssue(lead: RestaurantLead): string {
+  const issue = lead.imageAudit.photoIssues[0] ?? lead.imageAudit.suggestedUpgrade ?? lead.visualOpportunityReason;
+  const cleaned = issue
+    .replace(/Featherless vision audit:?\s*/gi, "")
+    .replace(/\([^)]*boring score[^)]*\)/gi, "")
+    .replace(/\bboring\b/gi, "flat")
+    .replace(/\baverage\b/gi, "serviceable")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (/no food( photography)?|no food or menu items shown/i.test(cleaned)) {
+    return "the current page does not show the food early enough";
+  }
+  return cleaned || "the current food/menu visuals need a stronger first impression";
 }
 
 function requirePrompts(value: unknown): string[] {

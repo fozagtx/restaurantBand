@@ -18,13 +18,13 @@ export function createPitchCopywriterAdapter(): GenericAdapter {
       await tools.sendMessage("Pitch Copywriter received zero validated leads, so no copy package was created.", [{ id: message.senderId }]);
       return;
     }
-    await reportProgress(tools, `Pitch Copywriter received ${research.leads.length} leads and is writing Featherless-powered outreach copy.`);
+    await reportProgress(tools, `Pitch Copywriter received ${research.leads.length} leads and is writing expert restaurant outreach copy.`);
     const copyPackage = copyPackageSchema.parse(await composeCopyPackage(research, config));
     await sendHandoff(
       tools,
       config.designAgentMention,
       "designer",
-      "Copy handoff from Pitch Copywriter. Use the copy package and research evidence to create Featherless image/design prompts, then deliver the digest to Telegram.",
+      "Pitch Copywriter finished the owner-ready copy. Create the image asset package and deliver the digest to Telegram.",
       copyPackage
     );
   }));

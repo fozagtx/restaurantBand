@@ -13,6 +13,37 @@ type LlmCopyResponse = {
   personalizationNotes?: string[];
 };
 
+const bannedCopyPhrases = [
+  "worth a look",
+  "visual refresh",
+  "boring score",
+  "featherless",
+  "public site/menu gives enough context",
+  "clear opportunity",
+  "outreach-ready asset set",
+  "boost your",
+  "enhance your online presence",
+  "looking forward",
+  "[your name]",
+  "best,",
+  "visual boost",
+  "eye-catching",
+  "boost engagement",
+  "engagement",
+  "opportunity",
+  "i've created",
+  "i’ve created",
+  "i've designed",
+  "i’ve designed",
+  "need adjustments",
+  "refine them",
+  "attract more customers",
+  "fresh visuals",
+  "deserve visuals",
+  "vibrant offerings",
+  "brand's energy"
+];
+
 export async function composeCopyPackage(research: ResearchPacket, config = loadConfig()): Promise<CopyPackage> {
   const copy: OutreachCopy[] = [];
   for (const lead of research.leads) {
@@ -38,24 +69,18 @@ export async function composeCopyPackage(research: ResearchPacket, config = load
 }
 
 async function composeOutreachCopy(lead: RestaurantLead, config: RuntimeConfig): Promise<OutreachCopy> {
-  const prompt = `Write concise outreach copy for this restaurant lead. Return only JSON with keys emailSubjects, coldEmail, instagramDm, smsVariant, personalizationNotes.
-
-Restaurant lead:
-${JSON.stringify(lead, null, 2)}
-
-Agency: ${config.agencyName}
-Rules:
-- Be specific to the evidence.
-- Do not invent metrics, relationships, or menu items not present in the lead.
-- Pitch a visual refresh: food photos, menu footer asset, and social-ready images.
-- Cold email should be under 150 words.
-- Instagram DM should be under 450 characters.`;
+  const prompt = buildExpertCopyPrompt(lead, config);
 
   const content = await runFeatherlessChat({
     config,
-    system: "You are a direct-response copywriting agent in a Band multi-agent workflow. Your core model provider is Featherless. Return valid JSON only.",
+    system: [
+      "You are a senior restaurant growth copywriter and food-creative director.",
+      "You write owner-to-owner outreach for independent restaurants.",
+      "You diagnose one visible menu/photo merchandising problem, connect it to online ordering or inquiry friction, and offer a small concrete fix.",
+      "Return valid JSON only. No markdown, no reasoning, no preface."
+    ].join(" "),
     user: prompt,
-    temperature: 0.5,
+    temperature: 0.35,
     maxTokens: 1400
   });
   const parsed = parseJsonObject<LlmCopyResponse>(content);
@@ -64,24 +89,55 @@ Rules:
     return composeFallbackOutreachCopy(lead, config);
   }
   try {
-    return {
+    const copy = {
       restaurantName: lead.name,
       website: lead.website,
       emailSubjects: requireStringArray(parsed.emailSubjects, "emailSubjects"),
       coldEmail: requireString(parsed.coldEmail, "coldEmail"),
       instagramDm: requireString(parsed.instagramDm, "instagramDm"),
       smsVariant: requireString(parsed.smsVariant, "smsVariant"),
-      personalizationNotes: requireStringArray(parsed.personalizationNotes, "personalizationNotes")
+      personalizationNotes: optionalStringArray(parsed.personalizationNotes) ?? buildPersonalizationNotes(lead)
     };
+    assertExpertCopy(copy);
+    return copy;
   } catch (error) {
     console.warn(`[Pitch Copywriter] Featherless copy JSON was incomplete for ${lead.name}; using evidence-bound fallback copy: ${error instanceof Error ? error.message : String(error)}`);
     return composeFallbackOutreachCopy(lead, config);
   }
 }
 
+function buildExpertCopyPrompt(lead: RestaurantLead, config: RuntimeConfig): string {
+  return `Write concise outreach copy for this restaurant lead.
+Return only JSON with keys emailSubjects, coldEmail, instagramDm, smsVariant, personalizationNotes.
+
+Expertise activation:
+- Think like a restaurant revenue operator, menu merchandiser, and food photography art director.
+- Diagnose the specific visible friction from the audit: weak hero image, flat/underlit food, distracting background, menu doing too much work, missing social-ready crop, or poor mobile first impression.
+- Convert the diagnosis into a small offer: 2 concrete mockups, one stronger hero/menu image and one social/menu crop.
+- The owner should feel "this person looked at my restaurant and knows the exact next asset I need," not "this is a generic agency pitch."
+
+Restaurant lead JSON:
+${JSON.stringify(lead, null, 2)}
+
+Agency: ${config.agencyName}
+
+Hard rules:
+- Do not mention model names, AI providers, audit scores, "boring score", or internal research.
+- Do not use these phrases: ${bannedCopyPhrases.join(", ")}.
+- Do not invent metrics, relationships, dish names, awards, or menu items not present in the lead.
+- Do not insult the restaurant or call the food/photos bad.
+- Lead with one observed issue and one practical fix.
+- Cold email: under 120 words, 3 short paragraphs max, plain English.
+- Instagram DM: under 300 characters.
+- SMS: under 220 characters.
+- Subject lines: under 45 characters each.
+- Use no hype, no exclamation marks, no filler.`;
+}
+
 function composeFallbackOutreachCopy(lead: RestaurantLead, config: RuntimeConfig): OutreachCopy {
-  const contactName = lead.contactPeople[0]?.name.split(/\s+/)[0] ?? "team";
-  const visualReason = lead.visualOpportunityReason || lead.outreachAngle;
+  const contactName = ownerSafeFirstName(lead.contactPeople[0]?.name);
+  const issue = buildOwnerSafeIssue(lead);
+  const subjectName = subjectSafeName(lead.name);
   const contactNote = lead.emails.length
     ? `Direct email found: ${lead.emails[0]}.`
     : lead.socialUrls.length
@@ -94,20 +150,101 @@ function composeFallbackOutreachCopy(lead: RestaurantLead, config: RuntimeConfig
     restaurantName: lead.name,
     website: lead.website,
     emailSubjects: [
-      `Visual refresh idea for ${lead.name}`,
-      `${lead.name}: food photos + menu assets`,
-      `Quick menu visual upgrade`
+      `Photo note for ${subjectName}`,
+      `${subjectName} menu photos`,
+      `2 image ideas`
     ],
-    coldEmail: `Hi ${contactName},\n\nI found ${lead.name} while reviewing ${lead.cuisine} restaurants in ${lead.location}. Your public site/menu gives enough context for a small visual refresh: ${visualReason}.\n\n${config.agencyName} can put together a compact outreach-ready asset set: refreshed food-photo direction, a menu footer/banner prompt, and social-ready image concepts based on the visuals already public.\n\nWould it be useful if I sent two sample concepts for ${lead.name}?`,
-    instagramDm: `Hi ${contactName}, I was looking at ${lead.name} and saw a clear opportunity for sharper food/menu visuals. I can send 2 sample concepts: food-photo direction, a menu footer/banner, and social-ready assets. Worth a look?`,
-    smsVariant: `Hi ${contactName}, quick idea for ${lead.name}: 2 sample food/menu visual refresh concepts for web + social. Want me to send them over?`,
-    personalizationNotes: [
-      `Website reviewed: ${lead.website}`,
-      `Visual audit: ${lead.imageAudit.verdict}, boring score ${lead.imageAudit.boringScore}/100.`,
-      `Opportunity reason: ${visualReason}`,
-      contactNote
-    ]
+    coldEmail: `Hi ${contactName},\n\nI was looking at ${lead.name}'s site and noticed ${issue}. That can make the menu do all the selling before the food has a chance to pull someone in.\n\n${config.agencyName} makes compact restaurant image kits: one stronger hero/menu image, one social crop, and the short caption copy to match.\n\nCan I send two mockups for ${lead.name}?`,
+    instagramDm: `Hi ${contactName}, quick note on ${lead.name}: ${issue}. I can send 2 tighter mockups: a hero/menu image and a social crop. Send them here?`,
+    smsVariant: `Hi ${contactName}, quick ${lead.name} idea: 2 tighter food/menu image mockups for web + social. Can I send them?`,
+    personalizationNotes: [...buildPersonalizationNotes(lead), contactNote]
   };
+}
+
+function subjectSafeName(name: string): string {
+  const cleaned = name.replace(/\s+/g, " ").trim();
+  return cleaned.length <= 24 ? cleaned : `${cleaned.slice(0, 21).trim()}...`;
+}
+
+function buildPersonalizationNotes(lead: RestaurantLead): string[] {
+  return [
+    `Website reviewed: ${lead.website}`,
+    `Observed issue: ${buildOwnerSafeIssue(lead)}`,
+    `Offer: 2 mockups, one hero/menu image and one social crop.`
+  ];
+}
+
+function buildOwnerSafeIssue(lead: RestaurantLead): string {
+  const issue = lead.imageAudit.photoIssues[0] ?? lead.imageAudit.suggestedUpgrade ?? lead.visualOpportunityReason;
+  const cleaned = stripInternalTerms(issue)
+    .replace(/^the\s+/i, "")
+    .replace(/\.$/, "")
+    .trim();
+  if (/overhead shot lacks dynamic angle/i.test(cleaned)) {
+    return "the current food/menu visuals lean on an overhead shot, so the dish loses depth and texture";
+  }
+  if (/underlit|flat/i.test(cleaned)) {
+    return "the current food/menu visuals look a little underlit and flat";
+  }
+  if (/background.*distract/i.test(cleaned)) {
+    return "the current food/menu visuals have background distractions pulling attention from the food";
+  }
+  if (/low-resolution|pixelation/i.test(cleaned)) {
+    return "some current food/menu visuals look low-resolution in places";
+  }
+  if (/no food( photography)?|no food or menu items shown/i.test(cleaned)) {
+    return "the current page does not show the food early enough";
+  }
+  if (cleaned) return `the current food/menu visuals could be stronger: ${cleaned}`;
+  return "the current food/menu visuals could use a stronger first impression";
+}
+
+function ownerSafeFirstName(name: string | undefined): string {
+  if (!name) return "team";
+  const first = name.split(/\s+/)[0]?.trim();
+  if (!first || /^(owner|founder|chef|manager|team)$/i.test(first)) return "team";
+  return first;
+}
+
+function stripInternalTerms(value: string): string {
+  return value
+    .replace(/Featherless vision audit:?\s*/gi, "")
+    .replace(/\([^)]*boring score[^)]*\)/gi, "")
+    .replace(/\bboring score\b/gi, "visual score")
+    .replace(/\bboring\b/gi, "flat")
+    .replace(/\baverage\b/gi, "serviceable")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function assertExpertCopy(copy: OutreachCopy): void {
+  const joined = [
+    ...copy.emailSubjects,
+    copy.coldEmail,
+    copy.instagramDm,
+    copy.smsVariant,
+    ...copy.personalizationNotes
+  ].join("\n").toLowerCase();
+  const banned = bannedCopyPhrases.find((phrase) => joined.includes(phrase));
+  if (banned) throw new Error(`copy used banned generic/internal phrase "${banned}"`);
+  if (copy.emailSubjects.length < 3) {
+    throw new Error("copy did not include three subject lines.");
+  }
+  if (/\b(enhance|boost|elevate|transform|captivate)\b/i.test(copy.emailSubjects.join(" "))) {
+    throw new Error("subject lines used generic agency verbs.");
+  }
+  if (/\[(your name|name|agency)\]/i.test(joined)) {
+    throw new Error("copy included unresolved placeholder text.");
+  }
+  if (!/^hi\s+/i.test(copy.coldEmail.trim())) {
+    throw new Error("coldEmail did not start with a direct owner greeting.");
+  }
+  if (!/\b(can i send|should i send|want me to send|send them here)\b/i.test(`${copy.coldEmail}\n${copy.instagramDm}\n${copy.smsVariant}`)) {
+    throw new Error("copy did not include a simple send-the-mockups CTA.");
+  }
+  if (copy.coldEmail.split(/\s+/).filter(Boolean).length > 140) {
+    throw new Error("coldEmail was too long for expert outreach.");
+  }
 }
 
 function requireString(value: unknown, field: string): string {
@@ -126,4 +263,10 @@ function requireStringArray(value: unknown, field: string): string[] {
     throw new Error(`Featherless copywriter response has empty ${field}.`);
   }
   return cleaned;
+}
+
+function optionalStringArray(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  const cleaned = value.filter((item): item is string => typeof item === "string" && item.trim().length > 0).map((item) => item.trim());
+  return cleaned.length ? cleaned : null;
 }

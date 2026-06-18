@@ -8,8 +8,8 @@ This is built for the Band hackathon requirement: Band is not just a notifier. T
 
 - `Lead Scout`: parses the task with Featherless, searches real restaurant websites through Exa, looks for emails, socials, and source-backed people names, then hands up to two qualified contactable candidates to the visual inspector.
 - `Visual Inspector`: filters unusable image URLs, uses a Featherless vision-capable model on the usable images, and only forwards validated visual-refresh leads. It is the only agent allowed to call a photo boring.
-- `Pitch Copywriter`: uses Featherless as the copywriting core and writes cold email, subject lines, DM copy, SMS copy, and personalization notes.
-- `Food Design Director`: calls a Featherless image/prompt model first. If Featherless returns prompts but no real image file/URL, it uses OpenAI Images to generate a PNG and sends the digest/assets to Telegram.
+- `Pitch Copywriter`: uses an expert restaurant-growth prompt to write cold email, subject lines, DM copy, SMS copy, and personalization notes. Generic/internal phrases are rejected before delivery.
+- `Food Design Director`: calls a food-photography/art-direction prompt first. If Featherless returns prompts but no real image file/URL, it uses OpenAI Images to generate a PNG and sends the digest/assets to Telegram.
 
 ## Band Collaboration Tools Used
 
@@ -149,4 +149,4 @@ The research workflow requires `EXA_API_KEY`. If Exa is missing or fails, the ap
 
 Visual inspection uses Featherless vision requests against actual image URLs from Exa. If no image URLs are found, the app says that explicitly and does not claim the photos are boring.
 
-Copywriting and design prompt creation call Featherless first. If Featherless returns invalid design JSON or prompts without a rendered image, the workflow uses the best evidence-bound prompt and calls OpenAI Images to create a PNG. The Telegram delivery should contain uploaded image files, not just prompt text.
+Copywriting and design prompt creation call Featherless first with restaurant-growth and food-art-direction instructions. If the copy contains generic/internal phrases, the workflow falls back to evidence-bound owner-ready copy. If Featherless returns invalid design JSON or prompts without a rendered image, the workflow uses the best evidence-bound art direction and calls OpenAI Images to create a PNG. Telegram renders a compact lead sheet instead of raw prompts or JSON.
