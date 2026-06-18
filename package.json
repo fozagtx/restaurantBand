@@ -1,0 +1,28 @@
+{
+  "name": "restaurant-pitch-agents",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Band-powered multi-agent restaurant visual refresh outreach workflow.",
+  "scripts": {
+    "dev:agents": "tsx src/agents/runAgents.ts",
+    "dev:pipeline": "tsx src/localPipeline.ts",
+    "preflight": "tsx src/preflight.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@band-ai/sdk": "^0.1.6",
+    "dotenv": "^17.2.3",
+    "js-yaml": "^4.1.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^24.10.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

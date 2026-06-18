@@ -1,0 +1,8 @@
+.env
+agent_config.yaml
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+outputs/

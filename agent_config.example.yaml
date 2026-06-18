@@ -1,0 +1,15 @@
+lead_scout:
+  agent_id: "<band-agent-uuid-for-lead-scout>"
+  api_key: "<band-agent-api-key-for-lead-scout>"
+
+visual_inspector:
+  agent_id: "<band-agent-uuid-for-visual-inspector>"
+  api_key: "<band-agent-api-key-for-visual-inspector>"
+
+pitch_copywriter:
+  agent_id: "<band-agent-uuid-for-pitch-copywriter>"
+  api_key: "<band-agent-api-key-for-pitch-copywriter>"
+
+food_design_director:
+  agent_id: "<band-agent-uuid-for-food-design-director>"
+  api_key: "<band-agent-api-key-for-food-design-director>"
