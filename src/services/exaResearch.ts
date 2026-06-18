@@ -79,14 +79,24 @@ export class ExaResearchClient {
     }
 
     this.requestCount += 1;
-    const response = await fetch(exaSearchUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.config.exaApiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45_000);
+    let response: Response;
+    try {
+      response = await fetch(exaSearchUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.config.exaApiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+    } catch (error) {
+      throw new Error(`Exa search request failed: ${error instanceof Error ? `${error.name}: ${error.message}` : String(error)}`);
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!response.ok) {
       throw new Error(`Exa search failed (${response.status}): ${await response.text()}`);

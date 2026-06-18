@@ -7,12 +7,10 @@
   "scripts": {
     "build": "tsc",
     "dev:agents": "tsx src/agents/runAgents.ts",
-    "dev:telegram": "tsx src/telegramInputBot.ts",
     "dev:pipeline": "tsx src/localPipeline.ts",
     "preflight": "tsx src/preflight.ts",
     "start": "node dist/railwayWorker.js",
     "start:agents": "node dist/agents/runAgents.js",
-    "start:telegram": "node dist/telegramInputBot.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

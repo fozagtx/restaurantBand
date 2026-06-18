@@ -119,19 +119,7 @@ Then in a Band room, ask the research agent:
 
 Band will show short emoji task updates such as `🧭 Lead Scout`, `🔎 Lead Scout`, `👁 Visual Inspector`, `✍️ Pitch Copywriter`, and `🎨 Food Design Director`. It does not post chain-of-thought or raw JSON handoff payloads.
 
-Telegram can also be used as an input channel:
-
-```bash
-npm run dev:telegram
-```
-
-Then send a message to the configured `TELEGRAM_CHAT_ID`:
-
-```text
-/lead find 1 restaurant in Austin, TX with bad food/menu images
-```
-
-Telegram input accepts `/lead ...`, `/find ...`, `@Lead Scout ...`, or a direct restaurant search request. It posts the same emoji status updates, then delivers the compact lead sheet and uploaded image asset back to Telegram. This path runs the local pipeline directly; it does not require Band to be open.
+Telegram is output-only: final lead sheets and generated image assets are sent to the configured `TELEGRAM_CHAT_ID` after the Band workflow completes.
 
 ## Deploy To Railway
 
@@ -141,14 +129,7 @@ This repo is Railway-ready as a long-running worker service. Railway reads `rail
 npm run start
 ```
 
-The production worker starts both the Band agents and Telegram input by default. You can disable either route with Railway variables:
-
-```bash
-RAILWAY_RUN_BAND_AGENTS=false
-RAILWAY_RUN_TELEGRAM_INPUT=false
-```
-
-Keep this worker at one Railway replica if Telegram input is enabled, because Telegram long polling should not be duplicated across multiple containers.
+The production worker starts the Band agents. Telegram remains output-only.
 
 Set these Railway variables from `.env` and `agent_config.yaml`:
 
