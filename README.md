@@ -1,6 +1,6 @@
-# Restaurant Pitch Agents
+# Restaura
 
-Four Band agents collaborate to find up to two validated restaurants with weak food/menu visuals, inspect their public images, write outreach copy, create Featherless-powered visual prompts/assets, generate fallback PNG images with OpenAI Images when Featherless does not render an image, and deliver a ready-to-send pitch digest to Telegram.
+Restaura uses four Band agents to find up to two validated restaurants with weak food/menu visuals, inspect their public images, write outreach copy, create Featherless-powered visual prompts/assets, generate fallback PNG images with OpenAI Images when Featherless does not render an image, and deliver a ready-to-send pitch digest to Telegram.
 
 This is built for the Band hackathon requirement: Band is not just a notifier. The agents use Band room tools to discover/recruit participants and pass structured work packets through the room.
 
@@ -46,7 +46,7 @@ FEATHERLESS_VISION_MODEL=...
 FEATHERLESS_IMAGE_MODEL=...
 OPENAI_API_KEY=...
 OPENAI_IMAGE_MODEL=gpt-image-1-mini
-AGENCY_NAME="Your actual outreach brand"
+AGENCY_NAME=Restaura
 TELEGRAM_BOT_TOKEN=...
 TELEGRAM_CHAT_ID=...
 ```

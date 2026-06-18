@@ -118,7 +118,7 @@ async function checkImageUrl(url: string): Promise<boolean> {
       method: "GET",
       redirect: "follow",
       headers: {
-        "User-Agent": "restaurant-pitch-agents/0.1 image-preflight",
+        "User-Agent": "restaura/0.1 image-preflight",
         Range: "bytes=0-0"
       },
       signal: controller.signal

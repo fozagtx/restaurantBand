@@ -42,16 +42,16 @@ export async function createDesignPackage(copyPackage: CopyPackage, config = loa
 }
 
 async function createDesignConcept(lead: RestaurantLead, config: RuntimeConfig): Promise<DesignConcept> {
-  const seedPrompts = buildSeedPrompts(lead);
-  const featherlessOutput = await callFeatherlessImageModel(lead, seedPrompts, config).catch((error) => {
-    console.warn(`[Food Design Director] Featherless design call failed for ${lead.name}; using seed prompts before OpenAI image fallback: ${error instanceof Error ? error.message : String(error)}`);
+  const fallbackPrompts = buildFallbackPrompts(lead);
+  const featherlessOutput = await callFeatherlessImageModel(lead, fallbackPrompts, config).catch((error) => {
+    console.warn(`[Food Design Director] Featherless design call failed for ${lead.name}; using fallback prompts before OpenAI image fallback: ${error instanceof Error ? error.message : String(error)}`);
     return "";
   });
-  if (!featherlessOutput) return createConceptWithOpenAiFallback(lead, seedPrompts, seedPrompts[2] ?? seedPrompts[0], [], config);
+  if (!featherlessOutput) return createConceptWithOpenAiFallback(lead, fallbackPrompts, fallbackPrompts[2] ?? fallbackPrompts[0], [], config);
   const parsed = parseJsonObject<FeatherlessPromptResponse>(featherlessOutput);
   if (!parsed) {
-    console.warn(`[Food Design Director] Featherless design model returned no JSON for ${lead.name}; using seed prompts before OpenAI image fallback.`);
-    return createConceptWithOpenAiFallback(lead, seedPrompts, seedPrompts[2] ?? seedPrompts[0], [], config);
+    console.warn(`[Food Design Director] Featherless design model returned no JSON for ${lead.name}; using fallback prompts before OpenAI image fallback.`);
+    return createConceptWithOpenAiFallback(lead, fallbackPrompts, fallbackPrompts[2] ?? fallbackPrompts[0], [], config);
   }
   let imagePrompts: string[];
   let menuFooterPrompt: string;
@@ -59,12 +59,12 @@ async function createDesignConcept(lead: RestaurantLead, config: RuntimeConfig):
     imagePrompts = requirePrompts(parsed.imagePrompts);
     menuFooterPrompt = requireText(parsed.menuFooterPrompt, "menuFooterPrompt");
   } catch (error) {
-    console.warn(`[Food Design Director] Featherless design JSON was incomplete for ${lead.name}; using seed prompts before OpenAI image fallback: ${error instanceof Error ? error.message : String(error)}`);
-    return createConceptWithOpenAiFallback(lead, seedPrompts, seedPrompts[2] ?? seedPrompts[0], [], config);
+    console.warn(`[Food Design Director] Featherless design JSON was incomplete for ${lead.name}; using fallback prompts before OpenAI image fallback: ${error instanceof Error ? error.message : String(error)}`);
+    return createConceptWithOpenAiFallback(lead, fallbackPrompts, fallbackPrompts[2] ?? fallbackPrompts[0], [], config);
   }
   const generatedAssets = await extractGeneratedAssets(parsed, featherlessOutput, lead);
   if (!hasRenderedImage(generatedAssets)) {
-    const openAiAsset = await generateOpenAiImageAsset(buildOpenAiImagePrompt(lead, imagePrompts[0] ?? seedPrompts[0]), lead.name, config);
+    const openAiAsset = await generateOpenAiImageAsset(buildOpenAiImagePrompt(lead, imagePrompts[0] ?? fallbackPrompts[0]), lead.name, config);
     generatedAssets.push(openAiAsset);
   }
   generatedAssets.push(...imagePrompts.map((prompt) => ({ kind: "prompt" as const, value: prompt })));
@@ -163,7 +163,7 @@ function buildVisualDirection(lead: RestaurantLead): string {
   return `Restaurant merchandising direction: solve this issue: ${buildDesignIssue(lead)}. Create one food-first hero/menu image and one social crop with natural side light, tighter composition, visible texture, restrained props, and mobile-safe negative space.`;
 }
 
-async function callFeatherlessImageModel(lead: RestaurantLead, seedPrompts: string[], config: RuntimeConfig): Promise<string> {
+async function callFeatherlessImageModel(lead: RestaurantLead, fallbackPrompts: string[], config: RuntimeConfig): Promise<string> {
   const prompt = `You are the senior food photography art director for this restaurant lead.
 
 Use the restaurant research below to create image-generation-ready assets for outreach.
@@ -192,8 +192,8 @@ Hard rules:
 Restaurant lead:
 ${JSON.stringify(lead, null, 2)}
 
-Seed prompts:
-${seedPrompts.map((item, index) => `${index + 1}. ${item}`).join("\n")}`;
+Fallback prompts:
+${fallbackPrompts.map((item, index) => `${index + 1}. ${item}`).join("\n")}`;
 
   return createChatCompletion({
     apiKey: config.featherlessApiKey,
@@ -208,7 +208,7 @@ ${seedPrompts.map((item, index) => `${index + 1}. ${item}`).join("\n")}`;
   });
 }
 
-function buildSeedPrompts(lead: RestaurantLead): string[] {
+function buildFallbackPrompts(lead: RestaurantLead): string[] {
   const sourceHint = lead.imageUrls[0] ? `Current search image reference for visual context: ${lead.imageUrls[0]}.` : "";
   const designIssue = buildDesignIssue(lead);
   return [

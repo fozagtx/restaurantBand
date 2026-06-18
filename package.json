@@ -1,9 +1,9 @@
 {
-  "name": "restaurant-pitch-agents",
+  "name": "restaura",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Band-powered multi-agent restaurant visual refresh outreach workflow.",
+  "description": "Restaura Band-powered restaurant visual outreach workflow.",
   "scripts": {
     "build": "tsc",
     "dev:agents": "tsx src/agents/runAgents.ts",

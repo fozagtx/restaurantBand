@@ -16,6 +16,7 @@ type CliOptions = {
   searchMode: "quick" | "smart" | "deep";
   exaSearchType: "fast" | "auto" | "deep" | "deep-reasoning";
   sendTelegram: boolean;
+  writeJson: boolean;
 };
 
 async function main(): Promise<void> {
@@ -43,10 +44,12 @@ async function main(): Promise<void> {
   const designPackage = await createDesignPackage(copyPackage, config);
   console.log(`Design agent completed ${designPackage.concepts.length} image asset packages.`);
 
-  await mkdir("outputs", { recursive: true });
-  const outputPath = `outputs/${slugify(`${options.location}-${options.cuisine}`)}-${Date.now()}.json`;
-  await writeFile(outputPath, JSON.stringify(designPackage, null, 2));
-  console.log(`Wrote structured output: ${outputPath}`);
+  if (options.writeJson) {
+    await mkdir("outputs", { recursive: true });
+    const outputPath = `outputs/${slugify(`${options.location}-${options.cuisine}`)}-${Date.now()}.json`;
+    await writeFile(outputPath, JSON.stringify(designPackage, null, 2));
+    console.log(`Wrote structured output: ${outputPath}`);
+  }
 
   if (options.sendTelegram) {
     console.log(await sendDesignPackageToTelegram(designPackage, config));
@@ -63,7 +66,8 @@ function parseArgs(args: string[]): CliOptions {
     limit: Number.NaN,
     searchMode: "" as CliOptions["searchMode"],
     exaSearchType: "" as CliOptions["exaSearchType"],
-    sendTelegram: false
+    sendTelegram: false,
+    writeJson: false
   };
 
   for (let index = 0; index < args.length; index += 1) {
@@ -84,6 +88,8 @@ function parseArgs(args: string[]): CliOptions {
       index += 1;
     } else if (arg === "--send-telegram") {
       options.sendTelegram = true;
+    } else if (arg === "--write-json") {
+      options.writeJson = true;
     }
   }
 

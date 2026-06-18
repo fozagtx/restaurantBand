@@ -1,6 +1,6 @@
 import { loadAgentConfig, type AgentCredentials } from "@band-ai/sdk";
 
-export function loadRestaurantBandAgentConfig(agentKey: string): AgentCredentials {
+export function loadBandAgentConfig(agentKey: string): AgentCredentials {
   const config = safeLoadAgentConfig(agentKey);
   const envConfig = loadAgentConfigFromEnv(agentKey);
   const agentId = isPlaceholder(config.agentId) ? envConfig.agentId : config.agentId;

@@ -255,7 +255,7 @@ async function validateOfficialWebsite(url: string, expectedName: string): Promi
     const response = await fetch(url, {
       method: "GET",
       redirect: "follow",
-      headers: { "User-Agent": "restaurant-pitch-agents/0.1 website-validator" },
+      headers: { "User-Agent": "restaura/0.1 website-validator" },
       signal: controller.signal
     });
     if (!response.ok) return { ok: false, reason: `official website did not load (${response.status})` };

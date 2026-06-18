@@ -2,7 +2,7 @@ import { Agent } from "@band-ai/sdk";
 import { pathToFileURL } from "node:url";
 
 import { loadConfig } from "../shared/config.js";
-import { loadRestaurantBandAgentConfig } from "./bandConfig.js";
+import { loadBandAgentConfig } from "./bandConfig.js";
 import { createFoodDesignDirectorAdapter } from "./foodDesignDirector.js";
 import { createLeadScoutAdapter } from "./leadScout.js";
 import { createPitchCopywriterAdapter } from "./pitchCopywriter.js";
@@ -23,7 +23,7 @@ export async function startBandAgents(): Promise<StartedBandAgents> {
   const config = loadConfig({ requireExa: true, requireFeatherless: true, requireTelegram: true });
   const agents = agentConfigs.map(({ key, adapter }) =>
     Agent.create({
-      config: loadRestaurantBandAgentConfig(key),
+      config: loadBandAgentConfig(key),
       adapter,
       restUrl: config.bandRestUrl,
       wsUrl: config.bandWsUrl,
