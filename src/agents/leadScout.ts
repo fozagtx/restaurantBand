@@ -2,9 +2,13 @@ import { GenericAdapter } from "@band-ai/sdk";
 
 import { loadConfig } from "../shared/config.js";
 import { action } from "../shared/collaborationLog.js";
-import { candidateResearchPacketSchema } from "../shared/schemas.js";
+import { candidateResearchPacketSchema, copyPackageSchema, designPackageSchema, researchPacketSchema } from "../shared/schemas.js";
+import { composeCopyPackage } from "../services/copywriter.js";
+import { createDesignPackage } from "../services/featherlessDesign.js";
 import { findRestaurantCandidates } from "../services/exaResearch.js";
-import { reportProgress, sendHandoff } from "./collaboration.js";
+import { inspectCandidatePacket } from "../services/visualInspection.js";
+import { sendDesignPackageToTelegram } from "../services/telegram.js";
+import { reportProgress } from "./collaboration.js";
 import { runLoggedAgent } from "./agentLogging.js";
 import { parseResearchTask } from "./taskParser.js";
 
@@ -14,7 +18,7 @@ export function createLeadScoutAdapter(): GenericAdapter {
       console.log("[Lead Scout] ignored non-research message");
       return;
     }
-    const config = loadConfig({ requireExa: true, requireFeatherless: true });
+    const config = loadConfig({ requireExa: true, requireFeatherless: true, requireTelegram: true });
     await reportProgress(tools, "🧭 Lead Scout: parsing the restaurant lead request.");
     const task = await parseResearchTask(message.content, config).catch(async (error) => {
       await tools.sendMessage(
@@ -37,14 +41,31 @@ export function createLeadScoutAdapter(): GenericAdapter {
     research.collaborationLog.push(
       action("Lead Scout", "delegate_visual_inspection", `Delegated ${research.leads.length} candidates to Visual Inspector for Featherless vision audit.`)
     );
-    const payload = candidateResearchPacketSchema.parse(research);
-    await sendHandoff(
+    const candidatePacket = candidateResearchPacketSchema.parse(research);
+    await reportProgress(
       tools,
-      config.visualInspectorAgentMention,
-      "visual inspector",
-      `Lead Scout found ${payload.leads.length} validated candidate${payload.leads.length === 1 ? "" : "s"} for image inspection.`,
-      payload
+      `👁 Visual Inspector: auditing public images for ${candidatePacket.leads.length} candidate${candidatePacket.leads.length === 1 ? "" : "s"}.`
     );
+    const researchPacket = researchPacketSchema.parse(await inspectCandidatePacket(candidatePacket, config));
+    if (!researchPacket.leads.length) {
+      await tools.sendMessage(
+        "Visual Inspector found no validated leads. Nothing was sent to copy/design because the candidate lacked usable weak menu-food evidence or a reliable contact path.",
+        [{ id: message.senderId }]
+      );
+      return;
+    }
+
+    await reportProgress(tools, `✍️ Pitch Copywriter: writing cold DM/email copy for ${researchPacket.leads.length} lead${researchPacket.leads.length === 1 ? "" : "s"}.`);
+    const copyPackage = copyPackageSchema.parse(await composeCopyPackage(researchPacket, config));
+
+    await reportProgress(tools, `🎨 Food Design Director: generating menu-food asset package for ${copyPackage.copy.length} lead${copyPackage.copy.length === 1 ? "" : "s"}.`);
+    const designPackage = designPackageSchema.parse(await createDesignPackage(copyPackage, config));
+    designPackage.copyPackage.research.collaborationLog.push(
+      action("Food Design Director", "telegram_delivery", `Sent final digest to Telegram chat ${config.telegramChatId}.`)
+    );
+
+    const deliveryStatus = await sendDesignPackageToTelegram(designPackage, config);
+    await tools.sendMessage(`✅ Restaura workflow complete. ${deliveryStatus}`, [{ id: message.senderId }]);
   }));
 }
 
@@ -54,7 +75,7 @@ function isResearchRequest(content: string): boolean {
   if (normalized.includes('"type": "candidate_research_packet"')) return false;
   if (normalized.includes('"type": "research_packet"')) return false;
   if (normalized.includes('"type": "copy_package"')) return false;
-  const asksForSearch = /\b(quick|smart|deep|find|search|look|lead|leads)\b/.test(normalized);
+  const asksForSearch = /\b(quick|smart|deep|find|search|look)\b/.test(normalized);
   const foodBusiness = /\b(restaurant|restaurants|shop|shops|food|sushi|sushie|cafe|cafes|pizza|taco|bakery|bar)\b/.test(normalized);
   return asksForSearch && foodBusiness;
 }
