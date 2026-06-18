@@ -43,24 +43,15 @@ export async function createDesignPackage(copyPackage: CopyPackage, config = loa
 
 async function createDesignConcept(lead: RestaurantLead, config: RuntimeConfig): Promise<DesignConcept> {
   const seedPrompts = buildSeedPrompts(lead);
-  const fallbackConcept = (): DesignConcept => ({
-    restaurantName: lead.name,
-    website: lead.website,
-    visualDirection: buildVisualDirection(lead),
-    featherlessModel: config.featherlessImageModel,
-    imagePrompts: seedPrompts,
-    menuFooterPrompt: seedPrompts[2] ?? seedPrompts[0],
-    generatedAssets: seedPrompts.map((prompt) => ({ kind: "prompt" as const, value: prompt }))
-  });
   const featherlessOutput = await callFeatherlessImageModel(lead, seedPrompts, config).catch((error) => {
-    console.warn(`[Food Design Director] Featherless design call failed for ${lead.name}; using seed prompts: ${error instanceof Error ? error.message : String(error)}`);
+    console.warn(`[Food Design Director] Featherless design call failed for ${lead.name}; using seed prompts before OpenAI image fallback: ${error instanceof Error ? error.message : String(error)}`);
     return "";
   });
-  if (!featherlessOutput) return fallbackConcept();
+  if (!featherlessOutput) return createConceptWithOpenAiFallback(lead, seedPrompts, seedPrompts[2] ?? seedPrompts[0], [], config);
   const parsed = parseJsonObject<FeatherlessPromptResponse>(featherlessOutput);
   if (!parsed) {
-    console.warn(`[Food Design Director] Featherless design model returned no JSON for ${lead.name}; using seed prompts.`);
-    return fallbackConcept();
+    console.warn(`[Food Design Director] Featherless design model returned no JSON for ${lead.name}; using seed prompts before OpenAI image fallback.`);
+    return createConceptWithOpenAiFallback(lead, seedPrompts, seedPrompts[2] ?? seedPrompts[0], [], config);
   }
   let imagePrompts: string[];
   let menuFooterPrompt: string;
@@ -68,13 +59,15 @@ async function createDesignConcept(lead: RestaurantLead, config: RuntimeConfig):
     imagePrompts = requirePrompts(parsed.imagePrompts);
     menuFooterPrompt = requireText(parsed.menuFooterPrompt, "menuFooterPrompt");
   } catch (error) {
-    console.warn(`[Food Design Director] Featherless design JSON was incomplete for ${lead.name}; using seed prompts: ${error instanceof Error ? error.message : String(error)}`);
-    return fallbackConcept();
+    console.warn(`[Food Design Director] Featherless design JSON was incomplete for ${lead.name}; using seed prompts before OpenAI image fallback: ${error instanceof Error ? error.message : String(error)}`);
+    return createConceptWithOpenAiFallback(lead, seedPrompts, seedPrompts[2] ?? seedPrompts[0], [], config);
   }
   const generatedAssets = await extractGeneratedAssets(parsed, featherlessOutput, lead);
-  if (!generatedAssets.length) {
-    generatedAssets.push(...imagePrompts.map((prompt) => ({ kind: "prompt" as const, value: prompt })));
+  if (!hasRenderedImage(generatedAssets)) {
+    const openAiAsset = await generateOpenAiImageAsset(buildOpenAiImagePrompt(lead, imagePrompts[0] ?? seedPrompts[0]), lead.name, config);
+    generatedAssets.push(openAiAsset);
   }
+  generatedAssets.push(...imagePrompts.map((prompt) => ({ kind: "prompt" as const, value: prompt })));
 
   return {
     restaurantName: lead.name,
@@ -85,6 +78,84 @@ async function createDesignConcept(lead: RestaurantLead, config: RuntimeConfig):
     menuFooterPrompt,
     generatedAssets
   };
+}
+
+async function createConceptWithOpenAiFallback(
+  lead: RestaurantLead,
+  imagePrompts: string[],
+  menuFooterPrompt: string,
+  assets: GeneratedAsset[],
+  config: RuntimeConfig
+): Promise<DesignConcept> {
+  const generatedAssets = [...assets];
+  if (!hasRenderedImage(generatedAssets)) {
+    generatedAssets.push(await generateOpenAiImageAsset(buildOpenAiImagePrompt(lead, imagePrompts[0]), lead.name, config));
+  }
+  generatedAssets.push(...imagePrompts.map((prompt) => ({ kind: "prompt" as const, value: prompt })));
+  return {
+    restaurantName: lead.name,
+    website: lead.website,
+    visualDirection: buildVisualDirection(lead),
+    featherlessModel: `${config.featherlessImageModel} + OpenAI ${config.openAiImageModel}`,
+    imagePrompts,
+    menuFooterPrompt,
+    generatedAssets
+  };
+}
+
+function hasRenderedImage(assets: GeneratedAsset[]): boolean {
+  return assets.some((asset) => asset.kind === "image_file" || asset.kind === "image_url");
+}
+
+function buildOpenAiImagePrompt(lead: RestaurantLead, basePrompt: string): string {
+  return [
+    basePrompt,
+    "",
+    `Create a finished, high-end, photorealistic food marketing image for ${lead.name}.`,
+    "Do not include text, logos, watermarks, menus, brand marks, or fake signage.",
+    "Make it look like a real restaurant-quality web/social visual asset, with appetizing food styling, natural light, and polished composition.",
+    `Cuisine/category: ${lead.cuisine}. Location context: ${lead.location}.`
+  ].join("\n");
+}
+
+async function generateOpenAiImageAsset(prompt: string, restaurantName: string, config: RuntimeConfig): Promise<GeneratedAsset> {
+  if (!config.openAiApiKey) {
+    throw new Error("OpenAI image fallback is required because Featherless returned no rendered image, but OPENAI_API_KEY is not set.");
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120_000);
+  try {
+    const response = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${config.openAiApiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: config.openAiImageModel,
+        prompt,
+        size: config.openAiImageSize,
+        quality: config.openAiImageQuality,
+        n: 1
+      }),
+      signal: controller.signal
+    });
+    const bodyText = await response.text();
+    if (!response.ok) {
+      throw new Error(`OpenAI image generation failed (${response.status}): ${bodyText}`);
+    }
+    const data = JSON.parse(bodyText) as { data?: Array<{ b64_json?: string; url?: string }> };
+    const image = data.data?.[0];
+    if (image?.b64_json) {
+      return { kind: "image_file", value: await saveBase64Image(image.b64_json, restaurantName) };
+    }
+    if (image?.url) {
+      return { kind: "image_url", value: image.url };
+    }
+    throw new Error(`OpenAI image generation returned no image data: ${bodyText}`);
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function buildVisualDirection(lead: RestaurantLead): string {

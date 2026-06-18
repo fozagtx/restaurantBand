@@ -11,6 +11,10 @@ export type RuntimeConfig = {
   featherlessVisionModel: string;
   featherlessImageModel: string;
   featherlessTemperature: number;
+  openAiApiKey: string;
+  openAiImageModel: string;
+  openAiImageSize: string;
+  openAiImageQuality: string;
   telegramBotToken: string;
   telegramChatId: string;
   researchAgentMention: string;
@@ -32,6 +36,10 @@ export function loadConfig(options: { requireExa?: boolean; requireFeatherless?:
     featherlessVisionModel: env("FEATHERLESS_VISION_MODEL"),
     featherlessImageModel: env("FEATHERLESS_IMAGE_MODEL"),
     featherlessTemperature: envFloat("FEATHERLESS_TEMPERATURE", 0.7),
+    openAiApiKey: env("OPENAI_API_KEY"),
+    openAiImageModel: env("OPENAI_IMAGE_MODEL", "gpt-image-1-mini"),
+    openAiImageSize: env("OPENAI_IMAGE_SIZE", "1024x1024"),
+    openAiImageQuality: env("OPENAI_IMAGE_QUALITY", "low"),
     telegramBotToken: env("TELEGRAM_BOT_TOKEN"),
     telegramChatId: env("TELEGRAM_CHAT_ID"),
     researchAgentMention: env("RESEARCH_AGENT_MENTION", "@Lead Scout"),

@@ -1,6 +1,6 @@
 # Restaurant Pitch Agents
 
-Four Band agents collaborate to find up to two validated restaurants with weak food/menu visuals, inspect their public images, write outreach copy, create Featherless-powered visual prompts/assets, and deliver a ready-to-send pitch digest to Telegram.
+Four Band agents collaborate to find up to two validated restaurants with weak food/menu visuals, inspect their public images, write outreach copy, create Featherless-powered visual prompts/assets, generate fallback PNG images with OpenAI Images when Featherless does not render an image, and deliver a ready-to-send pitch digest to Telegram.
 
 This is built for the Band hackathon requirement: Band is not just a notifier. The agents use Band room tools to discover/recruit participants and pass structured work packets through the room.
 
@@ -9,7 +9,7 @@ This is built for the Band hackathon requirement: Band is not just a notifier. T
 - `Lead Scout`: parses the task with Featherless, searches real restaurant websites through Exa, looks for emails, socials, and source-backed people names, then hands up to two qualified contactable candidates to the visual inspector.
 - `Visual Inspector`: filters unusable image URLs, uses a Featherless vision-capable model on the usable images, and only forwards validated visual-refresh leads. It is the only agent allowed to call a photo boring.
 - `Pitch Copywriter`: uses Featherless as the copywriting core and writes cold email, subject lines, DM copy, SMS copy, and personalization notes.
-- `Food Design Director`: calls a Featherless image/prompt model, creates visual prompts/assets and menu footer prompts, then sends the complete digest to Telegram.
+- `Food Design Director`: calls a Featherless image/prompt model first. If Featherless returns prompts but no real image file/URL, it uses OpenAI Images to generate a PNG and sends the digest/assets to Telegram.
 
 ## Band Collaboration Tools Used
 
@@ -43,6 +43,8 @@ FEATHERLESS_API_KEY=...
 FEATHERLESS_CHAT_MODEL=...
 FEATHERLESS_VISION_MODEL=...
 FEATHERLESS_IMAGE_MODEL=...
+OPENAI_API_KEY=...
+OPENAI_IMAGE_MODEL=gpt-image-1-mini
 AGENCY_NAME="Your actual outreach brand"
 TELEGRAM_BOT_TOKEN=...
 TELEGRAM_CHAT_ID=...
@@ -146,4 +148,4 @@ The research workflow requires `EXA_API_KEY`. If Exa is missing or fails, the ap
 
 Visual inspection uses Featherless vision requests against actual image URLs from Exa. If no image URLs are found, the app says that explicitly and does not claim the photos are boring.
 
-Copywriting and design prompt creation call Featherless first. If the provider returns invalid JSON, the workflow falls back to evidence-bound copy and seeded visual prompts rather than inventing unsupported claims or blocking delivery. The system only sends generated image files when the selected Featherless model actually returns image data; otherwise it sends prompts/concepts.
+Copywriting and design prompt creation call Featherless first. If Featherless returns invalid design JSON or prompts without a rendered image, the workflow uses the best evidence-bound prompt and calls OpenAI Images to create a PNG. The Telegram delivery should contain uploaded image files, not just prompt text.

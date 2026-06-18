@@ -10,6 +10,8 @@ function main(): void {
     ["FEATHERLESS_CHAT_MODEL", Boolean(config.featherlessChatModel)],
     ["FEATHERLESS_VISION_MODEL", Boolean(config.featherlessVisionModel)],
     ["FEATHERLESS_IMAGE_MODEL", Boolean(config.featherlessImageModel)],
+    ["OPENAI_API_KEY", Boolean(config.openAiApiKey)],
+    ["OPENAI_IMAGE_MODEL", Boolean(config.openAiImageModel)],
     ["agent_config.yaml", existsSync("agent_config.yaml")],
     ["Band agent IDs in agent_config.yaml", hasBandAgentIds()],
     ["Band per-agent API keys in agent_config.yaml", hasBandAgentApiKeys()]
