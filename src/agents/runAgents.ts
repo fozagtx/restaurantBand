@@ -15,13 +15,52 @@ const agentConfigs = [
   { key: "food_design_director", adapter: createFoodDesignDirectorAdapter() }
 ];
 
+const startupRetryCount = Number.parseInt(process.env.BAND_STARTUP_RETRY_COUNT ?? "12", 10);
+const startupRetryDelayMs = Number.parseInt(process.env.BAND_STARTUP_RETRY_DELAY_MS ?? "5000", 10);
+
 export type StartedBandAgents = {
   stop: () => Promise<void>;
 };
 
 export async function startBandAgents(): Promise<StartedBandAgents> {
   const config = loadConfig({ requireExa: true, requireFeatherless: true, requireTelegram: true });
-  const agents = agentConfigs.map(({ key, adapter }) =>
+  const agents = await startBandAgentsWithRetry(config);
+
+  return {
+    stop: async () => {
+      await Promise.all(agents.map((agent) => agent.stop()));
+    }
+  };
+}
+
+async function startBandAgentsWithRetry(config: ReturnType<typeof loadConfig>): Promise<Agent[]> {
+  const attempts = Number.isFinite(startupRetryCount) && startupRetryCount > 0 ? startupRetryCount : 12;
+  const delayMs = Number.isFinite(startupRetryDelayMs) && startupRetryDelayMs > 0 ? startupRetryDelayMs : 5000;
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const agents = createBandAgents(config);
+    try {
+      await Promise.all(agents.map((agent) => agent.start()));
+      console.log(`Started ${agents.length} Band agents: ${agentConfigs.map((agent) => agent.key).join(", ")}`);
+      return agents;
+    } catch (error) {
+      lastError = error;
+      await Promise.allSettled(agents.map((agent) => agent.stop()));
+      console.warn(
+        `Band agent startup attempt ${attempt}/${attempts} failed: ${error instanceof Error ? `${error.name}: ${error.message}` : String(error)}`
+      );
+      if (attempt < attempts) {
+        await delay(delayMs);
+      }
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(`Band agent startup failed: ${String(lastError)}`);
+}
+
+function createBandAgents(config: ReturnType<typeof loadConfig>): Agent[] {
+  return agentConfigs.map(({ key, adapter }) =>
     Agent.create({
       config: loadBandAgentConfig(key),
       adapter,
@@ -32,15 +71,10 @@ export async function startBandAgents(): Promise<StartedBandAgents> {
       }
     })
   );
+}
 
-  await Promise.all(agents.map((agent) => agent.start()));
-  console.log(`Started ${agents.length} Band agents: ${agentConfigs.map((agent) => agent.key).join(", ")}`);
-
-  return {
-    stop: async () => {
-      await Promise.all(agents.map((agent) => agent.stop()));
-    }
-  };
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function main(): Promise<void> {
