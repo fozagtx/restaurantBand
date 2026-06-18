@@ -1,17 +1,51 @@
 import { loadAgentConfig, type AgentCredentials } from "@band-ai/sdk";
 
+export const bandAgentKeys = ["lead_scout", "visual_inspector", "pitch_copywriter", "food_design_director"] as const;
+type CredentialSuffix = "AGENT_ID" | "API_KEY";
+
 export function loadBandAgentConfig(agentKey: string): AgentCredentials {
   const config = safeLoadAgentConfig(agentKey);
   const envConfig = loadAgentConfigFromEnv(agentKey);
   const agentId = isPlaceholder(config.agentId) ? envConfig.agentId : config.agentId;
   const apiKey = isPlaceholder(config.apiKey) ? envConfig.apiKey : config.apiKey;
   if (!agentId || isPlaceholder(agentId)) {
-    throw new Error(`${agentKey} is missing a real Band agent ID. Set agent_config.yaml locally or ${envPrefix(agentKey)}_AGENT_ID in Railway.`);
+    throw new Error(
+      `${agentKey} is missing a real Band agent ID. agent_config.yaml is local-only and is not deployed to Railway. ` +
+        `Set one of these Railway variables: ${getBandAgentEnvNames(agentKey, "AGENT_ID").join(", ")}.`
+    );
   }
   if (!apiKey || isPlaceholder(apiKey)) {
-    throw new Error(`${agentKey} is missing its Band API key. Set agent_config.yaml locally or ${envPrefix(agentKey)}_API_KEY in Railway.`);
+    throw new Error(
+      `${agentKey} is missing its Band API key. agent_config.yaml is local-only and is not deployed to Railway. ` +
+        `Set one of these Railway variables: ${getBandAgentEnvNames(agentKey, "API_KEY").join(", ")}.`
+    );
   }
   return { agentId, apiKey };
+}
+
+export function getBandAgentEnvNames(agentKey: string, suffix: CredentialSuffix): string[] {
+  const upper = agentKey.toUpperCase();
+  if (suffix === "AGENT_ID") {
+    return [
+      `BAND_${upper}_AGENT_ID`,
+      `BAND_${upper}_ID`,
+      `${upper}_AGENT_ID`,
+      `${upper}_ID`,
+      `BAND_${upper}_AGENT_UUID`,
+      `${upper}_AGENT_UUID`
+    ];
+  }
+  return [
+    `BAND_${upper}_API_KEY`,
+    `BAND_${upper}_KEY`,
+    `${upper}_API_KEY`,
+    `${upper}_KEY`,
+    `${upper}_BAND_API_KEY`
+  ];
+}
+
+export function hasBandAgentEnvValue(agentKey: string, suffix: CredentialSuffix): boolean {
+  return Boolean(readBandAgentEnvValue(agentKey, suffix));
 }
 
 function safeLoadAgentConfig(agentKey: string): AgentCredentials {
@@ -23,15 +57,18 @@ function safeLoadAgentConfig(agentKey: string): AgentCredentials {
 }
 
 function loadAgentConfigFromEnv(agentKey: string): AgentCredentials {
-  const prefix = envPrefix(agentKey);
   return {
-    agentId: process.env[`${prefix}_AGENT_ID`] ?? "",
-    apiKey: process.env[`${prefix}_API_KEY`] ?? ""
+    agentId: readBandAgentEnvValue(agentKey, "AGENT_ID"),
+    apiKey: readBandAgentEnvValue(agentKey, "API_KEY")
   };
 }
 
-function envPrefix(agentKey: string): string {
-  return `BAND_${agentKey.toUpperCase()}`;
+function readBandAgentEnvValue(agentKey: string, suffix: CredentialSuffix): string {
+  for (const name of getBandAgentEnvNames(agentKey, suffix)) {
+    const value = process.env[name];
+    if (typeof value === "string" && !isPlaceholder(value)) return value.trim();
+  }
+  return "";
 }
 
 function isPlaceholder(value: unknown): boolean {

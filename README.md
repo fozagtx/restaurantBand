@@ -2,11 +2,11 @@
 
 ## Short Description
 
-Restaura is a Band-powered agent workflow that finds validated restaurant leads with weak menu visuals, audits their images, writes outreach, and generates pitch-ready assets.
+Restaura is a Band-powered agent workflow that finds validated restaurant leads, audits weak menu food images, generates better-looking food assets, and writes converting cold DM/email pitches.
 
 ## Long Description
 
-Restaura helps a small restaurant marketing owner find a few real prospects per day instead of a long noisy list. A Lead Scout searches live restaurant websites through Exa, validates the official site, and rejects mismatched or thin results. A Visual Inspector audits public food/menu images with Featherless vision and keeps only leads with clear visual opportunity. A Pitch Copywriter turns the evidence into concise owner-safe email, DM, and SMS copy. A Food Design Director creates food-photography directions and, when needed, uses OpenAI Images to generate a PNG asset. Band coordinates the agent handoffs and progress updates, while Telegram is reserved for final output delivery.
+Restaura helps a small restaurant marketing owner find a few real prospects per day instead of a long noisy list. A Lead Scout searches live restaurant websites through Exa, validates the official site, and rejects mismatched or thin results. A Visual Inspector audits public food/menu images with Featherless vision and keeps only leads where better menu food assets could help. A Pitch Copywriter turns the evidence into concise cold email, DM, and SMS copy built to start a client conversation. A Food Design Director creates food-photography directions and, when needed, uses OpenAI Images to generate a PNG food asset. Band coordinates the agent handoffs and progress updates, while Telegram is reserved for final output delivery.
 
 ## Agents
 
@@ -92,7 +92,7 @@ Railway reads `railway.json`, builds the project, and starts the long-running wo
 npm run start
 ```
 
-Set the `.env` values in Railway, plus these Band agent credentials:
+Set the `.env` values in Railway, plus these Band agent credentials. `agent_config.yaml` is ignored locally and is not deployed to Railway.
 
 ```bash
 BAND_LEAD_SCOUT_AGENT_ID

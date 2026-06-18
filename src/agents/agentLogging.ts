@@ -1,6 +1,8 @@
 import type { AdapterToolsProtocol, PlatformMessage } from "@band-ai/sdk";
 
 const processStartedAt = Date.now();
+const startupReplayWindowMs = parseStartupReplayWindowMs();
+const processedStartupReplayKeys = new Set<string>();
 
 export async function runLoggedAgent(
   agentName: string,
@@ -9,8 +11,13 @@ export async function runLoggedAgent(
   handler: () => Promise<void>
 ): Promise<void> {
   const preview = message.content.replace(/\s+/g, " ").slice(0, 180);
-  if (isStaleStartupMessage(message)) {
-    console.log(`[${agentName}] ignored stale startup message ${message.id}: ${preview}`);
+  const startupReplay = getStartupReplayState(message);
+  if (startupReplay === "old") {
+    console.log(`[${agentName}] ignored old startup replay ${message.id}: ${preview}`);
+    return;
+  }
+  if (startupReplay === "duplicate") {
+    console.log(`[${agentName}] ignored duplicate startup replay ${message.id}: ${preview}`);
     return;
   }
   console.log(`[${agentName}] received message ${message.id} in room ${message.roomId}: ${preview}`);
@@ -29,7 +36,27 @@ export async function runLoggedAgent(
   }
 }
 
-function isStaleStartupMessage(message: PlatformMessage): boolean {
+function getStartupReplayState(message: PlatformMessage): "current" | "recent" | "duplicate" | "old" {
   const createdAt = message.createdAt instanceof Date ? message.createdAt.getTime() : new Date(message.createdAt).getTime();
-  return Number.isFinite(createdAt) && createdAt < processStartedAt - 5_000;
+  if (!Number.isFinite(createdAt)) return "current";
+  if (createdAt >= processStartedAt - 5_000) return "current";
+  if (createdAt < processStartedAt - startupReplayWindowMs) return "old";
+
+  const key = [
+    message.roomId,
+    message.senderId,
+    Math.floor(createdAt / 60_000),
+    message.content.replace(/\s+/g, " ").trim().toLowerCase()
+  ].join("|");
+  if (processedStartupReplayKeys.has(key)) return "duplicate";
+  processedStartupReplayKeys.add(key);
+  return "recent";
+}
+
+function parseStartupReplayWindowMs(): number {
+  const value = process.env.BAND_STARTUP_REPLAY_WINDOW_MINUTES;
+  if (!value) return 30 * 60_000;
+  const minutes = Number.parseInt(value, 10);
+  if (!Number.isFinite(minutes) || minutes < 1) return 30 * 60_000;
+  return minutes * 60_000;
 }
