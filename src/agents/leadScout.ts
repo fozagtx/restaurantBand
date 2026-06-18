@@ -4,7 +4,6 @@ import { loadConfig } from "../shared/config.js";
 import { action } from "../shared/collaborationLog.js";
 import { candidateResearchPacketSchema } from "../shared/schemas.js";
 import { findRestaurantCandidates } from "../services/exaResearch.js";
-import { runFeatherlessChat } from "../services/featherlessCore.js";
 import { reportProgress, sendHandoff } from "./collaboration.js";
 import { runLoggedAgent } from "./agentLogging.js";
 import { parseResearchTask } from "./taskParser.js";
@@ -35,14 +34,6 @@ export function createLeadScoutAdapter(): GenericAdapter {
       return;
     }
 
-    const brief = await runFeatherlessChat({
-      config,
-      system: "You are Lead Scout, a Featherless-powered research agent. Summarize Exa research for a downstream copywriter.",
-      user: `Summarize this research packet in 5 bullets without changing the JSON facts:\n${JSON.stringify(research, null, 2)}`,
-      temperature: 0.2,
-      maxTokens: 700
-    }).catch((error) => `Featherless research brief failed: ${error instanceof Error ? error.message : String(error)}`);
-
     research.collaborationLog.push(
       action("Lead Scout", "delegate_visual_inspection", `Delegated ${research.leads.length} candidates to Visual Inspector for Featherless vision audit.`)
     );
@@ -51,7 +42,7 @@ export function createLeadScoutAdapter(): GenericAdapter {
       tools,
       config.visualInspectorAgentMention,
       "visual inspector",
-      `Candidate research handoff from Lead Scout. Brief:\n${brief}\n\nUse the JSON packet below to inspect images with Featherless vision before copywriting.`,
+      `Lead Scout found ${payload.leads.length} validated candidate${payload.leads.length === 1 ? "" : "s"} for image inspection.`,
       payload
     );
   }));

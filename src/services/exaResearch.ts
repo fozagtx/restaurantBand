@@ -138,7 +138,7 @@ export async function findRestaurantCandidates(input: {
     const primary = domainResults[0];
     if (!primary) continue;
     const name = inferRestaurantName(primary.title, domain);
-    const websiteValidation = await validateOfficialWebsite(primary.url);
+    const websiteValidation = await validateOfficialWebsite(primary.url, name);
     if (!websiteValidation.ok) {
       skippedUnqualified += 1;
       notes.push(`Skipped ${name}: ${websiteValidation.reason}`);
@@ -238,7 +238,7 @@ function isOfficialContactUrl(url: string, domain: string): boolean {
   }
 }
 
-async function validateOfficialWebsite(url: string): Promise<WebsiteValidation> {
+async function validateOfficialWebsite(url: string, expectedName: string): Promise<WebsiteValidation> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12_000);
   try {
@@ -252,7 +252,7 @@ async function validateOfficialWebsite(url: string): Promise<WebsiteValidation> 
     const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
     if (!contentType.includes("text/html")) return { ok: false, reason: `official website returned ${contentType || "non-HTML content"}` };
     const html = await response.text();
-    const reason = rejectWebsiteReason(html, response.url);
+    const reason = rejectWebsiteReason(html, response.url, expectedName);
     if (reason) return { ok: false, reason };
     return { ok: true, reason: "loaded", finalUrl: response.url };
   } catch (error) {
@@ -262,7 +262,7 @@ async function validateOfficialWebsite(url: string): Promise<WebsiteValidation> 
   }
 }
 
-function rejectWebsiteReason(html: string, url: string): string | null {
+function rejectWebsiteReason(html: string, url: string, expectedName: string): string | null {
   const lower = html.toLowerCase();
   if (lower.includes('name="robots" content="noindex"') && /\b(coming soon|under construction|check back|parking page)\b/.test(lower)) {
     return "official website is a noindex coming-soon/under-construction page";
@@ -273,14 +273,32 @@ function rejectWebsiteReason(html: string, url: string): string | null {
   if (lower.includes("squarespace-logo") && lower.includes("parking-page")) {
     return "official website is a Squarespace parking page";
   }
-  if (stripTags(html).trim().length < 500) {
+  const visibleText = stripTags(html).trim();
+  if (visibleText.length < 500) {
     return `official website has too little visible content (${url})`;
+  }
+  const brandTokens = brandIdentityTokens(expectedName);
+  const domain = cleanDomain(url).replace(/[^a-z0-9]/g, " ");
+  const searchable = `${visibleText} ${domain}`.toLowerCase();
+  if (brandTokens.length && !brandTokens.some((token) => searchable.includes(token))) {
+    return `official website content does not match candidate name "${expectedName}"`;
   }
   return null;
 }
 
 function stripTags(html: string): string {
   return html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+}
+
+function brandIdentityTokens(name: string): string[] {
+  const blocked = new Set(["restaurant", "restaurants", "catering", "food", "truck", "menu", "official", "site", "home", "austin", "tx", "texas"]);
+  return name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token.length >= 4 && !blocked.has(token))
+    .slice(0, 4);
 }
 
 function normalizeExaResult(raw: ExaRawResult): ExaResult | null {
@@ -345,7 +363,7 @@ function normalizePersonMatch(match: RegExpMatchArray): { name: string; role: st
   const role = values.find((value) => /owner|founder|chef|manager|operator|partner/i.test(value));
   const name = values.find((value) => value !== role && /^[A-Z][a-zA-Z'.-]+(?:\s+[A-Z][a-zA-Z'.-]+)+$/.test(value));
   if (!name) return null;
-  const blocked = ["New York", "Los Angeles", "San Francisco", "Austin Texas", "Contact Us", "Order Online", "Privacy Policy"];
+  const blocked = ["New York", "Los Angeles", "San Francisco", "Austin Texas", "Contact Us", "Order Online", "Privacy Policy", "Our Mission"];
   if (blocked.some((item) => item.toLowerCase() === name.toLowerCase())) return null;
   if (/\b(Restaurant|Group|LLC|Inc|Menu|Order|Online|Facebook|Instagram|LinkedIn)\b/i.test(name)) return null;
   return {

@@ -8,12 +8,12 @@ import { reportProgress, sendHandoff } from "./collaboration.js";
 
 export function createVisualInspectorAdapter(): GenericAdapter {
   return new GenericAdapter(async ({ message, tools }) => runLoggedAgent("Visual Inspector", message, tools, async () => {
-    if (!hasJsonPayloadType(message.content, "candidate_research_packet")) {
+    if (!hasJsonPayloadType(message.content, "candidate_research_packet", message.metadata)) {
       console.log("[Visual Inspector] ignored non-candidate-research message");
       return;
     }
     const config = loadConfig({ requireFeatherless: true });
-    const candidatePacket = parseJsonPayload(message.content, candidateResearchPacketSchema);
+    const candidatePacket = parseJsonPayload(message.content, candidateResearchPacketSchema, message.metadata);
     await reportProgress(
       tools,
       `Visual Inspector received ${candidatePacket.leads.length} candidates and is auditing public image URLs with Featherless vision.`

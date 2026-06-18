@@ -8,12 +8,12 @@ import { reportProgress, sendHandoff } from "./collaboration.js";
 
 export function createPitchCopywriterAdapter(): GenericAdapter {
   return new GenericAdapter(async ({ message, tools }) => runLoggedAgent("Pitch Copywriter", message, tools, async () => {
-    if (!hasJsonPayloadType(message.content, "research_packet")) {
+    if (!hasJsonPayloadType(message.content, "research_packet", message.metadata)) {
       console.log("[Pitch Copywriter] ignored non-research-packet message");
       return;
     }
     const config = loadConfig({ requireFeatherless: true });
-    const research = parseJsonPayload(message.content, researchPacketSchema);
+    const research = parseJsonPayload(message.content, researchPacketSchema, message.metadata);
     if (!research.leads.length) {
       await tools.sendMessage("Pitch Copywriter received zero validated leads, so no copy package was created.", [{ id: message.senderId }]);
       return;

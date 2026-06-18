@@ -1,5 +1,7 @@
 import type { AdapterToolsProtocol, PlatformMessage } from "@band-ai/sdk";
 
+const processStartedAt = Date.now();
+
 export async function runLoggedAgent(
   agentName: string,
   message: PlatformMessage,
@@ -7,6 +9,10 @@ export async function runLoggedAgent(
   handler: () => Promise<void>
 ): Promise<void> {
   const preview = message.content.replace(/\s+/g, " ").slice(0, 180);
+  if (isStaleStartupMessage(message)) {
+    console.log(`[${agentName}] ignored stale startup message ${message.id}: ${preview}`);
+    return;
+  }
   console.log(`[${agentName}] received message ${message.id} in room ${message.roomId}: ${preview}`);
   try {
     await handler();
@@ -21,4 +27,9 @@ export async function runLoggedAgent(
     }
     throw error;
   }
+}
+
+function isStaleStartupMessage(message: PlatformMessage): boolean {
+  const createdAt = message.createdAt instanceof Date ? message.createdAt.getTime() : new Date(message.createdAt).getTime();
+  return Number.isFinite(createdAt) && createdAt < processStartedAt - 5_000;
 }

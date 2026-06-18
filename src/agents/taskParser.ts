@@ -52,7 +52,7 @@ Required:
     maxTokens: 900
   });
   const fallbackParsed = parseExplicitTaskFromText(normalizedMessage);
-  const parsed = parseTaskJson(output) ?? fallbackParsed;
+  const parsed = mergeParsedTask(parseTaskJson(output), fallbackParsed);
   if (!parsed) {
     throw new Error(`Featherless task parser returned no usable JSON and the message did not contain explicit location/cuisine fields: ${output}`);
   }
@@ -70,11 +70,29 @@ Required:
   const searchMode = isSearchMode(parsed.searchMode) ? parsed.searchMode : "smart";
   const exaSearchType = normalizeExaSearchType(searchMode, parsed.exaSearchType, normalizedMessage);
   return {
-    location: parsed.location.trim(),
+    location: normalizeLocation(parsed.location),
     cuisine: normalizeCuisine(parsed.cuisine),
     limit: capLeadLimit(limit),
     searchMode,
     exaSearchType
+  };
+}
+
+function mergeParsedTask(
+  modelParsed: (Partial<ResearchTask> & { error?: string }) | null,
+  fallbackParsed: (Partial<ResearchTask> & { error?: string }) | null
+): (Partial<ResearchTask> & { error?: string }) | null {
+  if (!modelParsed && !fallbackParsed) return null;
+  if (!modelParsed) return fallbackParsed;
+  if (!fallbackParsed) return modelParsed;
+  return {
+    ...modelParsed,
+    location: fallbackParsed.location ?? modelParsed.location,
+    cuisine: fallbackParsed.cuisine ?? modelParsed.cuisine,
+    limit: fallbackParsed.limit ?? modelParsed.limit,
+    searchMode: fallbackParsed.searchMode ?? modelParsed.searchMode,
+    exaSearchType: fallbackParsed.exaSearchType ?? modelParsed.exaSearchType,
+    error: undefined
   };
 }
 
@@ -89,10 +107,8 @@ function parseTaskJson(output: string): (Partial<ResearchTask> & { error?: strin
 function parseExplicitTaskFromText(message: string): (Partial<ResearchTask> & { error?: string }) | null {
   const limitMatch = message.match(/\b(?:find|limit|top)\s+(\d{1,2})\b/i) ?? message.match(/\b(\d{1,2})\s+(?:restaurant|restaurants|lead|leads)\b/i);
   const locationMatch = message.match(/\bin\s+([A-Za-z .'-]+,\s*[A-Z]{2})\b/i) ?? message.match(/\bin\s+([A-Za-z .'-]+\s+[A-Z]{2})\b/i);
-  const cuisineMatch =
-    message.match(/\b(?:find|search: find|search for|look for)\s+(?:\d{1,2}\s+)?(.+?)\s+(?:restaurant|restaurants|shop|shops|cafe|cafes|lead|leads|place|places)\b/i) ??
-    message.match(/\b(sushie|sushi|pizza|taco|thai|mexican|burger|coffee|bakery|bbq|barbecue)\b/i);
-  if (!locationMatch?.[1] || !cuisineMatch?.[1]) return null;
+  const cuisine = extractCuisine(message);
+  if (!locationMatch?.[1] || !cuisine) return null;
   const lower = message.toLowerCase();
   const searchMode: ResearchTask["searchMode"] = lower.includes("quick")
     ? "quick"
@@ -103,7 +119,7 @@ function parseExplicitTaskFromText(message: string): (Partial<ResearchTask> & { 
         : "smart";
   return {
     location: normalizeLocation(locationMatch[1]),
-    cuisine: normalizeCuisine(cuisineMatch[1]),
+    cuisine,
     limit: limitMatch?.[1] ? Number.parseInt(limitMatch[1], 10) : DAILY_VALIDATED_LEAD_TARGET,
     searchMode,
     exaSearchType: normalizeExaSearchType(searchMode, undefined, message)
@@ -115,11 +131,29 @@ function isSearchMode(value: unknown): value is ResearchTask["searchMode"] {
 }
 
 function normalizeCuisine(value: string): string {
-  return value.trim().replace(/\bsushie\b/gi, "sushi").replace(/\s+/g, " ");
+  const cleaned = value
+    .trim()
+    .replace(/\bsushie\b/gi, "sushi")
+    .replace(/\b(food|bad|boring|menu|image|images|photo|photos|with|in|find|search|smart|quick|deep)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned || /^\d+$/.test(cleaned)) return "restaurants";
+  return cleaned;
 }
 
 function normalizeLocation(value: string): string {
-  return value.trim().replace(/\s+([A-Z]{2})$/i, ", $1").replace(/\s+/g, " ");
+  let cleaned = value.trim().replace(/\s+/g, " ").replace(/,+/g, ",").replace(/\s*,\s*/g, ", ");
+  cleaned = cleaned.replace(/([^,\s])\s+([A-Z]{2})$/i, "$1, $2");
+  return cleaned.replace(/,+/g, ",").replace(/\s*,\s*/g, ", ").replace(/\s+/g, " ");
+}
+
+function extractCuisine(message: string): string | null {
+  const specific = message.match(/\b(sushie|sushi|pizza|taco|thai|mexican|burger|coffee|bakery|bbq|barbecue|italian|chinese|asian|seafood|vegan|vegetarian)\b/i);
+  if (specific?.[1]) return normalizeCuisine(specific[1]);
+  const categoryMatch = message.match(/\b(?:find|search: find|search for|look for)\s+(?:\d{1,2}\s+)?([A-Za-z][A-Za-z\s'-]{1,40}?)\s+(?:restaurant|restaurants|shop|shops|cafe|cafes|lead|leads|place|places)\b/i);
+  if (categoryMatch?.[1]) return normalizeCuisine(categoryMatch[1]);
+  if (/\brestaurant|restaurants\b/i.test(message)) return "restaurants";
+  return null;
 }
 
 function normalizeExaSearchType(

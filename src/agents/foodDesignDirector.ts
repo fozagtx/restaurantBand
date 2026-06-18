@@ -10,12 +10,12 @@ import { reportProgress } from "./collaboration.js";
 
 export function createFoodDesignDirectorAdapter(): GenericAdapter {
   return new GenericAdapter(async ({ message, tools }) => runLoggedAgent("Food Design Director", message, tools, async () => {
-    if (!hasJsonPayloadType(message.content, "copy_package")) {
+    if (!hasJsonPayloadType(message.content, "copy_package", message.metadata)) {
       console.log("[Food Design Director] ignored non-copy-package message");
       return;
     }
     const config = loadConfig({ requireFeatherless: true, requireTelegram: true });
-    const copyPackage = parseJsonPayload(message.content, copyPackageSchema);
+    const copyPackage = parseJsonPayload(message.content, copyPackageSchema, message.metadata);
     if (!copyPackage.copy.length) {
       await tools.sendMessage("Food Design Director received zero copy packs, so no design package was sent to Telegram.", [{ id: message.senderId }]);
       return;

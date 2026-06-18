@@ -134,11 +134,16 @@ export type CopyPackage = z.infer<typeof copyPackageSchema>;
 export type DesignConcept = z.infer<typeof designConceptSchema>;
 export type DesignPackage = z.infer<typeof designPackageSchema>;
 
-export function hasJsonPayloadType(text: string, type: string): boolean {
-  return new RegExp(`"type"\\s*:\\s*"${escapeRegExp(type)}"`).test(text);
+export function hasJsonPayloadType(text: string, type: string, metadata?: Record<string, unknown>): boolean {
+  return getMetadataPayloadType(metadata) === type || new RegExp(`"type"\\s*:\\s*"${escapeRegExp(type)}"`).test(text);
 }
 
-export function parseJsonPayload<T>(text: string, schema: z.ZodType<T>): T {
+export function parseJsonPayload<T>(text: string, schema: z.ZodType<T>, metadata?: Record<string, unknown>): T {
+  const metadataPayload = getMetadataPayload(metadata);
+  if (metadataPayload !== null) {
+    const result = schema.safeParse(metadataPayload);
+    if (result.success) return result.data;
+  }
   const parsedPayloads = extractJsonObjects(text)
     .map((candidate) => safeJsonParse(candidate))
     .filter((candidate): candidate is unknown => candidate !== null);
@@ -147,6 +152,19 @@ export function parseJsonPayload<T>(text: string, schema: z.ZodType<T>): T {
     if (result.success) return result.data;
   }
   throw new Error("Message did not contain a JSON object payload matching the expected schema.");
+}
+
+function getMetadataPayloadType(metadata?: Record<string, unknown>): string | null {
+  const value = metadata?.handoff_type;
+  return typeof value === "string" ? value : null;
+}
+
+function getMetadataPayload(metadata?: Record<string, unknown>): unknown | null {
+  const direct = metadata?.handoff_payload;
+  if (direct && typeof direct === "object") return direct;
+  const json = metadata?.handoff_payload_json;
+  if (typeof json !== "string") return null;
+  return safeJsonParse(json);
 }
 
 function extractJsonObjects(text: string): string[] {

@@ -18,9 +18,10 @@ The TypeScript agents use Band's collaboration tool surface through the SDK. In 
 - `list_chat_participants_service` equivalent: `thenvoi_get_participants`.
 - `list_available_participants_service` equivalent: `thenvoi_lookup_peers`, checking every page.
 - `add_participant_service` equivalent: `thenvoi_add_participant`.
-- `send_direct_message_service`/room message equivalent: `thenvoi_send_message` with @mentions.
-- Progress reporting uses `sendEvent` / `thenvoi_send_event`.
-- Every packet includes a `collaborationLog`; the final Telegram digest prints the delegation/action trail.
+- `send_direct_message_service`/room message equivalent: `thenvoi_send_message` with @mentions for user-facing errors/status.
+- Handoffs and progress reporting use `sendEvent` / `thenvoi_send_event`.
+- Structured handoff packets are stored in event metadata so the Band room does not show raw JSON payloads.
+- Every packet keeps a `collaborationLog` internally for traceability, but the final Telegram digest is client-facing and omits internal tool/debug logs.
 
 Not used by default:
 
