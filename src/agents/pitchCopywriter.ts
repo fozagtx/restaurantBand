@@ -18,7 +18,7 @@ export function createPitchCopywriterAdapter(): GenericAdapter {
       await tools.sendMessage("Pitch Copywriter received zero validated leads, so no copy package was created.", [{ id: message.senderId }]);
       return;
     }
-    await reportProgress(tools, `Pitch Copywriter received ${research.leads.length} leads and is writing expert restaurant outreach copy.`);
+    await reportProgress(tools, `✍️ Pitch Copywriter: writing owner-ready copy for ${research.leads.length} lead${research.leads.length === 1 ? "" : "s"}.`);
     const copyPackage = copyPackageSchema.parse(await composeCopyPackage(research, config));
     await sendHandoff(
       tools,

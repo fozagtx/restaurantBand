@@ -6,6 +6,7 @@
   "description": "Band-powered multi-agent restaurant visual refresh outreach workflow.",
   "scripts": {
     "dev:agents": "tsx src/agents/runAgents.ts",
+    "dev:telegram": "tsx src/telegramInputBot.ts",
     "dev:pipeline": "tsx src/localPipeline.ts",
     "preflight": "tsx src/preflight.ts",
     "typecheck": "tsc --noEmit"

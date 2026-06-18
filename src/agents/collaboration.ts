@@ -66,7 +66,7 @@ export async function sendHandoff(
 }
 
 export async function reportProgress(tools: AdapterToolsProtocol, message: string): Promise<void> {
-  await optionalCall(() => tools.sendEvent(message, "agent_progress", { message }), undefined);
+  await optionalCall(() => tools.sendEvent(message, "task", { kind: "agent_progress", message }), undefined);
 }
 
 async function findAvailablePeerName(tools: AdapterToolsProtocol, targetName: string): Promise<{ peerName: string | null; toolLog: ToolUseLog[] }> {

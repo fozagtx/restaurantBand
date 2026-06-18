@@ -125,7 +125,7 @@ function formatContactPath(lead: DesignPackage["copyPackage"]["research"]["leads
   return values.length ? values.join(", ") : "Not found";
 }
 
-async function sendTelegramMessage(text: string, config: RuntimeConfig): Promise<void> {
+export async function sendTelegramMessage(text: string, config: RuntimeConfig): Promise<void> {
   const response = await fetch(`https://api.telegram.org/bot${config.telegramBotToken}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

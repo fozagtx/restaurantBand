@@ -15,7 +15,7 @@ export function createLeadScoutAdapter(): GenericAdapter {
       return;
     }
     const config = loadConfig({ requireExa: true, requireFeatherless: true });
-    await reportProgress(tools, "Lead Scout received the task and is parsing search parameters with Featherless.");
+    await reportProgress(tools, "🧭 Lead Scout: parsing the restaurant lead request.");
     const task = await parseResearchTask(message.content, config).catch(async (error) => {
       await tools.sendMessage(
         `I can run this, but I need at least cuisine/category and location. Count defaults to 2 validated leads, and search depth defaults to smart. Example: "find sushi restaurants in Austin, TX with boring food or menu photos".\n\nParser issue: ${error instanceof Error ? error.message : String(error)}`,
@@ -24,7 +24,7 @@ export function createLeadScoutAdapter(): GenericAdapter {
       return null;
     });
     if (!task) return;
-    await reportProgress(tools, `Lead Scout is searching Exa for up to ${task.limit} validated ${task.cuisine} leads in ${task.location}.`);
+    await reportProgress(tools, `🔎 Lead Scout: searching for up to ${task.limit} validated ${task.cuisine} leads in ${task.location}.`);
     const research = await findRestaurantCandidates({ ...task, config });
     if (!research.leads.length) {
       await tools.sendMessage(

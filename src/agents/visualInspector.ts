@@ -16,7 +16,7 @@ export function createVisualInspectorAdapter(): GenericAdapter {
     const candidatePacket = parseJsonPayload(message.content, candidateResearchPacketSchema, message.metadata);
     await reportProgress(
       tools,
-      `Visual Inspector received ${candidatePacket.leads.length} candidates and is auditing public image URLs with Featherless vision.`
+      `👁 Visual Inspector: auditing public images for ${candidatePacket.leads.length} candidate${candidatePacket.leads.length === 1 ? "" : "s"}.`
     );
     const researchPacket = researchPacketSchema.parse(await inspectCandidatePacket(candidatePacket, config));
     if (!researchPacket.leads.length) {
