@@ -1,4 +1,5 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { pathToFileURL } from "node:url";
 
 import { parseResearchTask } from "./agents/taskParser.js";
 import { composeCopyPackage } from "./services/copywriter.js";
@@ -30,7 +31,7 @@ type TelegramUpdatesResponse = {
 
 const offsetPath = "outputs/telegram-bot-offset.json";
 
-async function main(): Promise<void> {
+export async function runTelegramInputBot(options: { signal?: AbortSignal } = {}): Promise<void> {
   const config = loadConfig({ requireExa: true, requireFeatherless: true, requireTelegram: true });
   let offset = await loadOffset();
   if (offset === null) {
@@ -46,7 +47,7 @@ async function main(): Promise<void> {
     config
   ).catch((error) => console.warn(`[Telegram Input] ready message failed: ${error instanceof Error ? error.message : String(error)}`));
 
-  while (true) {
+  while (!options.signal?.aborted) {
     const updates: TelegramUpdate[] = await getUpdates(config, pollingOffset, 25).catch((error) => {
       console.warn(`[Telegram Input] polling failed: ${error instanceof Error ? error.message : String(error)}`);
       return [];
@@ -61,6 +62,14 @@ async function main(): Promise<void> {
       });
     }
   }
+}
+
+async function main(): Promise<void> {
+  const controller = new AbortController();
+  const shutdown = (): void => controller.abort();
+  process.once("SIGINT", shutdown);
+  process.once("SIGTERM", shutdown);
+  await runTelegramInputBot({ signal: controller.signal });
 }
 
 async function handleUpdate(update: TelegramUpdate, config: RuntimeConfig): Promise<void> {
@@ -164,7 +173,13 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (isMain(import.meta.url)) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}
+
+function isMain(metaUrl: string): boolean {
+  return Boolean(process.argv[1] && pathToFileURL(process.argv[1]).href === metaUrl);
+}

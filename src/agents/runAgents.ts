@@ -1,4 +1,5 @@
 import { Agent } from "@band-ai/sdk";
+import { pathToFileURL } from "node:url";
 
 import { loadConfig } from "../shared/config.js";
 import { loadRestaurantBandAgentConfig } from "./bandConfig.js";
@@ -14,7 +15,11 @@ const agentConfigs = [
   { key: "food_design_director", adapter: createFoodDesignDirectorAdapter() }
 ];
 
-async function main(): Promise<void> {
+export type StartedBandAgents = {
+  stop: () => Promise<void>;
+};
+
+export async function startBandAgents(): Promise<StartedBandAgents> {
   const config = loadConfig({ requireExa: true, requireFeatherless: true, requireTelegram: true });
   const agents = agentConfigs.map(({ key, adapter }) =>
     Agent.create({
@@ -31,8 +36,17 @@ async function main(): Promise<void> {
   await Promise.all(agents.map((agent) => agent.start()));
   console.log(`Started ${agents.length} Band agents: ${agentConfigs.map((agent) => agent.key).join(", ")}`);
 
+  return {
+    stop: async () => {
+      await Promise.all(agents.map((agent) => agent.stop()));
+    }
+  };
+}
+
+async function main(): Promise<void> {
+  const started = await startBandAgents();
   const shutdown = async (): Promise<void> => {
-    await Promise.all(agents.map((agent) => agent.stop()));
+    await started.stop();
     process.exit(0);
   };
   process.once("SIGINT", shutdown);
@@ -40,7 +54,13 @@ async function main(): Promise<void> {
   await new Promise(() => undefined);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (isMain(import.meta.url)) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}
+
+function isMain(metaUrl: string): boolean {
+  return Boolean(process.argv[1] && pathToFileURL(process.argv[1]).href === metaUrl);
+}

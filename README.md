@@ -133,6 +133,66 @@ Then send a message to the configured `TELEGRAM_CHAT_ID`:
 
 Telegram input accepts `/lead ...`, `/find ...`, `@Lead Scout ...`, or a direct restaurant search request. It posts the same emoji status updates, then delivers the compact lead sheet and uploaded image asset back to Telegram. This path runs the local pipeline directly; it does not require Band to be open.
 
+## Deploy To Railway
+
+This repo is Railway-ready as a long-running worker service. Railway reads `railway.json`, builds with `npm ci && npm run build`, then starts:
+
+```bash
+npm run start
+```
+
+The production worker starts both the Band agents and Telegram input by default. You can disable either route with Railway variables:
+
+```bash
+RAILWAY_RUN_BAND_AGENTS=false
+RAILWAY_RUN_TELEGRAM_INPUT=false
+```
+
+Keep this worker at one Railway replica if Telegram input is enabled, because Telegram long polling should not be duplicated across multiple containers.
+
+Set these Railway variables from `.env` and `agent_config.yaml`:
+
+```bash
+BAND_REST_URL
+BAND_WS_URL
+EXA_API_KEY
+FEATHERLESS_API_KEY
+FEATHERLESS_CHAT_MODEL
+FEATHERLESS_VISION_MODEL
+FEATHERLESS_IMAGE_MODEL
+OPENAI_API_KEY
+OPENAI_IMAGE_MODEL
+OPENAI_IMAGE_SIZE
+OPENAI_IMAGE_QUALITY
+TELEGRAM_BOT_TOKEN
+TELEGRAM_CHAT_ID
+AGENCY_NAME
+RESEARCH_AGENT_MENTION
+VISUAL_INSPECTOR_AGENT_MENTION
+COPYWRITER_AGENT_MENTION
+DESIGN_AGENT_MENTION
+```
+
+Also add the four Band agent IDs and keys as env vars instead of relying on the ignored local `agent_config.yaml` file:
+
+```bash
+BAND_LEAD_SCOUT_AGENT_ID
+BAND_LEAD_SCOUT_API_KEY
+BAND_VISUAL_INSPECTOR_AGENT_ID
+BAND_VISUAL_INSPECTOR_API_KEY
+BAND_PITCH_COPYWRITER_AGENT_ID
+BAND_PITCH_COPYWRITER_API_KEY
+BAND_FOOD_DESIGN_DIRECTOR_AGENT_ID
+BAND_FOOD_DESIGN_DIRECTOR_API_KEY
+```
+
+Then deploy from the repo:
+
+```bash
+railway link
+railway up
+```
+
 Count and search mode are intentionally bounded:
 
 - Missing count defaults to 2.
