@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Restaura Pitch Deck</title>
+    <style>
+      @page {
+        size: 13.333in 7.5in;
+        margin: 0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #f4efe6;
+        color: #17211d;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .slide {
+        width: 13.333in;
+        height: 7.5in;
+        page-break-after: always;
+        position: relative;
+        overflow: hidden;
+        padding: 0.64in 0.72in;
+        background: #f4efe6;
+      }
+
+      .slide:last-child {
+        page-break-after: auto;
+      }
+
+      .cover {
+        background:
+          linear-gradient(90deg, rgba(13, 61, 47, 0.96), rgba(13, 61, 47, 0.82)),
+          #0d3d2f;
+        color: #fffaf0;
+      }
+
+      .cover img {
+        width: 5.7in;
+        height: 1.43in;
+        object-fit: cover;
+        border-radius: 0.18in;
+        box-shadow: 0 0.16in 0.42in rgba(0, 0, 0, 0.24);
+      }
+
+      .eyebrow {
+        color: #c65b3d;
+        font-size: 0.16in;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 0.24in;
+      }
+
+      .cover .eyebrow {
+        color: #f6c47a;
+      }
+
+      h1, h2 {
+        margin: 0;
+        line-height: 0.95;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        font-size: 0.94in;
+        max-width: 8.2in;
+      }
+
+      h2 {
+        font-size: 0.62in;
+        max-width: 7.5in;
+      }
+
+      .subhead {
+        margin-top: 0.3in;
+        font-size: 0.25in;
+        line-height: 1.35;
+        max-width: 7.2in;
+        color: #51483f;
+      }
+
+      .cover .subhead {
+        color: #f2dfc6;
+        max-width: 7.1in;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.36in;
+        margin-top: 0.52in;
+      }
+
+      .three {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .panel {
+        border: 0.02in solid rgba(23, 33, 29, 0.16);
+        border-radius: 0.08in;
+        padding: 0.26in;
+        background: rgba(255, 252, 244, 0.72);
+        min-height: 1.32in;
+      }
+
+      .panel strong {
+        display: block;
+        font-size: 0.24in;
+        margin-bottom: 0.12in;
+      }
+
+      .panel p, .panel li {
+        font-size: 0.17in;
+        line-height: 1.35;
+        margin: 0;
+        color: #51483f;
+      }
+
+      ul {
+        padding-left: 0.22in;
+        margin: 0;
+      }
+
+      li + li {
+        margin-top: 0.08in;
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.18in;
+        margin-top: 0.5in;
+      }
+
+      .step {
+        background: #102f29;
+        color: #fffaf0;
+        border-radius: 0.08in;
+        padding: 0.24in;
+        min-height: 2in;
+      }
+
+      .step .num {
+        color: #f6c47a;
+        font-size: 0.18in;
+        font-weight: 800;
+        margin-bottom: 0.24in;
+      }
+
+      .step strong {
+        display: block;
+        font-size: 0.23in;
+        line-height: 1.05;
+        margin-bottom: 0.14in;
+      }
+
+      .step p {
+        color: #ddccb7;
+        font-size: 0.15in;
+        line-height: 1.35;
+        margin: 0;
+      }
+
+      .metric-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.22in;
+        margin-top: 0.42in;
+      }
+
+      .metric {
+        padding: 0.26in;
+        background: #102f29;
+        color: #fffaf0;
+        border-radius: 0.08in;
+      }
+
+      .metric b {
+        display: block;
+        font-size: 0.44in;
+        line-height: 1;
+      }
+
+      .metric span {
+        display: block;
+        margin-top: 0.12in;
+        color: #dfcebb;
+        font-size: 0.16in;
+        line-height: 1.35;
+      }
+
+      .quote {
+        margin-top: 0.28in;
+        width: 7.1in;
+        border-left: 0.06in solid #c65b3d;
+        padding-left: 0.28in;
+        color: #51483f;
+        font-size: 0.2in;
+        line-height: 1.32;
+      }
+
+      .footer {
+        position: absolute;
+        left: 0.72in;
+        bottom: 0.32in;
+        font-size: 0.13in;
+        color: rgba(23, 33, 29, 0.54);
+      }
+
+      .cover .footer {
+        color: rgba(255, 250, 240, 0.58);
+      }
+    </style>
+  </head>
+  <body>
+    <section class="slide cover">
+      <div class="eyebrow">Restaura</div>
+      <h1>Restaurant leads with proof, not guesswork.</h1>
+      <p class="subhead">A Band-powered agent workflow that finds validated restaurants, audits weak menu food images, generates better-looking menu assets, and writes cold DM/email pitches built to start client conversations.</p>
+      <div style="margin-top: 0.58in;"><img src="../assets/restaura-agents.png" alt="Restaura agents" /></div>
+      <div class="footer">5-page pitch deck</div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Problem</div>
+      <h2>Restaurant prospecting is noisy and easy to fake.</h2>
+      <p class="subhead">Owners do not need another scraped list. They need a reason to reply. The useful prospect is a real restaurant with a validated site, a contact path, weak menu-food presentation, and a clear pitch angle.</p>
+      <div class="grid three">
+        <div class="panel"><strong>Bad lists waste time</strong><p>Open-ended search returns too many names, mismatched websites, and dead leads.</p></div>
+        <div class="panel"><strong>Weak visuals cost clicks</strong><p>Flat menu images make the food do less selling than it should.</p></div>
+        <div class="panel"><strong>Generic outreach fails</strong><p>Owners ignore pitches that do not prove the sender actually looked at the business.</p></div>
+      </div>
+      <div class="quote">Built for two validated prospects per day. No fake websites. No raw research dump.</div>
+      <div class="footer">Restaura / Problem</div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Product</div>
+      <h2>Four agents turn one prompt into a pitch-ready lead.</h2>
+      <div class="steps">
+        <div class="step"><div class="num">01</div><strong>Lead Scout</strong><p>Searches live restaurant sites, validates the official website, rejects mismatches, and keeps contactable leads only.</p></div>
+        <div class="step"><div class="num">02</div><strong>Visual Inspector</strong><p>Audits public food/menu images with Featherless vision and keeps only real visual opportunities.</p></div>
+        <div class="step"><div class="num">03</div><strong>Pitch Copywriter</strong><p>Writes cold email, DM, and SMS copy from the evidence. No internal model talk in the owner-facing pitch.</p></div>
+        <div class="step"><div class="num">04</div><strong>Food Design Director</strong><p>Creates better-looking menu food assets and sends the final lead sheet to Telegram.</p></div>
+      </div>
+      <div class="footer">Restaura / Product</div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Output</div>
+      <h2>Every completed run gives the owner something usable.</h2>
+      <div class="grid">
+        <div class="panel">
+          <strong>Validated lead sheet</strong>
+          <ul>
+            <li>Restaurant name and official website</li>
+            <li>Contact paths and public evidence</li>
+            <li>Image audit and practical upgrade angle</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <strong>Conversion assets</strong>
+          <ul>
+            <li>Cold DM, email, subject lines, and SMS</li>
+            <li>Generated food/menu image asset</li>
+            <li>Concise Telegram delivery for action</li>
+          </ul>
+        </div>
+      </div>
+      <div class="metric-row">
+        <div class="metric"><b>2</b><span>Validated leads per day by default.</span></div>
+        <div class="metric"><b>0</b><span>Mock restaurants or invented websites.</span></div>
+        <div class="metric"><b>1</b><span>Band prompt to start the workflow.</span></div>
+      </div>
+      <div class="footer">Restaura / Output</div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Why It Wins</div>
+      <h2>Restaura sells with evidence before asking for trust.</h2>
+      <p class="subhead">The system is deliberately narrow: find real restaurants, prove the visual problem, create a better-looking menu-food asset, and send a cold pitch that references what was actually found. That makes it useful for a small agency owner who needs daily outreach momentum without fake data or bloated research packets.</p>
+      <div class="grid three">
+        <div class="panel"><strong>Strict validation</strong><p>Bad websites and mismatched businesses are rejected before copywriting.</p></div>
+        <div class="panel"><strong>Visible teamwork</strong><p>Band shows the agent chain: scout, inspect, write, design, deliver.</p></div>
+        <div class="panel"><strong>Owner-ready pitch</strong><p>The final output is short enough to send and concrete enough to be worth opening.</p></div>
+      </div>
+      <div class="footer">Restaura / Close</div>
+    </section>
+  </body>
+</html>
