@@ -1,5 +1,7 @@
 import type { AdapterToolsProtocol } from "@band-ai/sdk";
 
+import { saveHandoffPayload } from "./handoffStore.js";
+
 type UnknownRecord = Record<string, unknown>;
 type ToolUseLog = {
   uiService: string;
@@ -45,24 +47,12 @@ export async function sendHandoff(
   intro: string,
   payload: unknown
 ): Promise<void> {
-  await ensureParticipant(tools, mention, role);
+  const participant = await ensureParticipant(tools, mention, role);
   const compactPayload = compactHandoffPayload(payload);
   const handoffType = getPayloadType(compactPayload);
-  const content = `${intro} Next: ${mention}.`;
-  await callToolOrSdk(
-    tools,
-    "send_event_service",
-    "thenvoi_send_event",
-    {
-      content,
-      message_type: "task",
-      metadata: {
-        handoff_type: handoffType,
-        handoff_payload_json: JSON.stringify(compactPayload),
-        target_mention: mention
-      }
-    }
-  );
+  const handoffId = saveHandoffPayload(handoffType, compactPayload);
+  const content = `${mention} Restaura handoff ${handoffId}: ${intro}`;
+  await tools.sendMessage(content, [participant.participantName]);
 }
 
 export async function reportProgress(tools: AdapterToolsProtocol, message: string): Promise<void> {
