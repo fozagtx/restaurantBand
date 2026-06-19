@@ -1,3 +1,5 @@
+![Restaura agent workflow](assets/restaura-agents.png)
+
 # Restaura
 
 ## Short Description
