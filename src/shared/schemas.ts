@@ -151,7 +151,7 @@ export function parseJsonPayload<T>(text: string, schema: z.ZodType<T>, metadata
     const result = schema.safeParse(payload);
     if (result.success) return result.data;
   }
-  throw new Error("Message did not contain a JSON object payload matching the expected schema.");
+  throw new Error("Message lacked a JSON object payload matching the expected schema.");
 }
 
 function getMetadataPayloadType(metadata?: Record<string, unknown>): string | null {

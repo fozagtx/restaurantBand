@@ -94,7 +94,7 @@ function formatExpertRead(lead: DesignPackage["copyPackage"]["research"]["leads"
   if (/underlit|flat/i.test(cleaned)) return "Current food image reads underlit or flat, so the pitch should lead with stronger side light and texture.";
   if (/background.*distract/i.test(cleaned)) return "Current image has background distractions, so the mockup should simplify the table setting and bring the food forward.";
   if (/low-resolution|pixelation/i.test(cleaned)) return "Some public visuals look low-resolution, so the offer should focus on clean web/social-ready image assets.";
-  if (/no food( photography)?|no food or menu items shown/i.test(cleaned)) return "Current page does not show the food early enough, so the pitch should lead with a clear hero/menu image.";
+  if (/no food( photography)?|no food or menu items shown/i.test(cleaned)) return "Current page delays the food image, so the pitch should lead with a clear hero/menu image.";
   return cleaned || "The lead has enough menu/visual evidence for a focused image merchandising pitch.";
 }
 

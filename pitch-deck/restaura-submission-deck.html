@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Restaura Submission Deck</title>
+    <style>
+      @page {
+        size: 13.333in 7.5in;
+        margin: 0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #f5f1e8;
+        color: #18231f;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .slide {
+        width: 13.333in;
+        height: 7.5in;
+        page-break-after: always;
+        padding: 0.68in 0.76in;
+        position: relative;
+        overflow: hidden;
+        background: #f5f1e8;
+      }
+
+      .slide:last-child {
+        page-break-after: auto;
+      }
+
+      .cover {
+        background: #0d3d2f;
+        color: #fff8ea;
+      }
+
+      .label {
+        color: #c65b3d;
+        font-size: 0.15in;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 0.26in;
+      }
+
+      .cover .label {
+        color: #f4c577;
+      }
+
+      h1, h2 {
+        margin: 0;
+        line-height: 0.96;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        font-size: 1.02in;
+      }
+
+      h2 {
+        font-size: 0.64in;
+        max-width: 8.1in;
+      }
+
+      .body {
+        margin-top: 0.34in;
+        font-size: 0.23in;
+        line-height: 1.38;
+        max-width: 7.8in;
+        color: #51483f;
+      }
+
+      .cover .body {
+        color: #eadac4;
+      }
+
+      .cover img {
+        width: 5.7in;
+        height: 1.43in;
+        object-fit: cover;
+        border-radius: 0.12in;
+        margin-top: 0.55in;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.26in;
+        margin-top: 0.48in;
+      }
+
+      .cards.two {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .card {
+        background: rgba(255, 252, 244, 0.86);
+        border: 0.018in solid rgba(24, 35, 31, 0.16);
+        border-radius: 0.06in;
+        padding: 0.25in;
+        min-height: 1.35in;
+      }
+
+      .card strong {
+        display: block;
+        font-size: 0.22in;
+        margin-bottom: 0.12in;
+      }
+
+      .card p, .card li {
+        font-size: 0.16in;
+        line-height: 1.36;
+        margin: 0;
+        color: #51483f;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 0.22in;
+      }
+
+      li + li {
+        margin-top: 0.08in;
+      }
+
+      .chain {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.16in;
+        margin-top: 0.52in;
+      }
+
+      .agent {
+        background: #102f29;
+        color: #fff8ea;
+        border-radius: 0.07in;
+        padding: 0.23in;
+        min-height: 2.18in;
+      }
+
+      .agent b {
+        color: #f4c577;
+        display: block;
+        font-size: 0.17in;
+        margin-bottom: 0.22in;
+      }
+
+      .agent strong {
+        display: block;
+        font-size: 0.22in;
+        margin-bottom: 0.14in;
+      }
+
+      .agent p {
+        color: #dfceb8;
+        font-size: 0.145in;
+        line-height: 1.35;
+        margin: 0;
+      }
+
+      .metric {
+        background: #102f29;
+        color: #fff8ea;
+        border-radius: 0.07in;
+        padding: 0.24in;
+      }
+
+      .metric b {
+        display: block;
+        font-size: 0.42in;
+        line-height: 1;
+      }
+
+      .metric span {
+        display: block;
+        color: #dfceb8;
+        font-size: 0.155in;
+        line-height: 1.34;
+        margin-top: 0.1in;
+      }
+
+      .footer {
+        position: absolute;
+        left: 0.76in;
+        bottom: 0.32in;
+        font-size: 0.12in;
+        color: rgba(24, 35, 31, 0.52);
+      }
+
+      .cover .footer {
+        color: rgba(255, 248, 234, 0.62);
+      }
+    </style>
+  </head>
+  <body>
+    <section class="slide cover">
+      <div class="label">Restaura</div>
+      <h1>Daily restaurant outreach desk.</h1>
+      <p class="body">Band agents find restaurant prospects, inspect menu-food images, generate good-looking food assets, and write cold DM/email pitches for a menu design service owner.</p>
+      <img src="../assets/restaura-agents.png" alt="Restaura agents" />
+      <div class="footer">Submission deck / 5 pages</div>
+    </section>
+
+    <section class="slide">
+      <div class="label">User</div>
+      <h2>Built for a menu design service owner.</h2>
+      <p class="body">The user needs a small daily batch of restaurants with a real outreach reason. Restaura focuses on restaurants where public menu or food images create a clear sales opening for better menu visuals.</p>
+      <div class="cards three">
+        <div class="card"><strong>Daily batch</strong><p>Default cap is two checked restaurants per request.</p></div>
+        <div class="card"><strong>Restaurant evidence</strong><p>Website, menu pages, contact paths, image URLs, and source notes stay attached to the lead.</p></div>
+        <div class="card"><strong>Sales angle</strong><p>The pitch points to the food-image issue and offers a sample upgrade.</p></div>
+      </div>
+      <div class="footer">Restaura / User</div>
+    </section>
+
+    <section class="slide">
+      <div class="label">Workflow</div>
+      <h2>Four Band agents work in sequence.</h2>
+      <div class="chain">
+        <div class="agent"><b>01</b><strong>Lead Scout</strong><p>Parses the prompt, searches Exa, validates restaurant sites, and passes candidate leads forward.</p></div>
+        <div class="agent"><b>02</b><strong>Visual Inspector</strong><p>Checks public food/menu images with Featherless vision and writes the visual issue.</p></div>
+        <div class="agent"><b>03</b><strong>Pitch Copywriter</strong><p>Writes subject lines, cold email, DM, SMS, and notes from the evidence.</p></div>
+        <div class="agent"><b>04</b><strong>Food Design Director</strong><p>Creates the food-image asset direction, generates a PNG, and delivers the packet to Telegram.</p></div>
+      </div>
+      <div class="footer">Restaura / Workflow</div>
+    </section>
+
+    <section class="slide">
+      <div class="label">Output</div>
+      <h2>Telegram receives the outreach packet.</h2>
+      <div class="cards two">
+        <div class="card">
+          <strong>Lead sheet</strong>
+          <ul>
+            <li>Restaurant name and official website</li>
+            <li>Contact path and evidence links</li>
+            <li>Image issue and upgrade direction</li>
+          </ul>
+        </div>
+        <div class="card">
+          <strong>Pitch pack</strong>
+          <ul>
+            <li>Cold email, DM, SMS, and subject lines</li>
+            <li>Generated menu-food PNG asset</li>
+            <li>Short notes for manual sending</li>
+          </ul>
+        </div>
+      </div>
+      <div class="cards three">
+        <div class="metric"><b>2</b><span>Restaurant lead cap per run.</span></div>
+        <div class="metric"><b>4</b><span>Agents visible in Band.</span></div>
+        <div class="metric"><b>1</b><span>Telegram packet at completion.</span></div>
+      </div>
+      <div class="footer">Restaura / Output</div>
+    </section>
+
+    <section class="slide">
+      <div class="label">Demo Prompt</div>
+      <h2>@Lead Scout smart search: find 1 restaurant in Austin, TX with bad food/menu images</h2>
+      <p class="body">The room shows the handoff chain as each agent works. The final Telegram packet gives the user a checked restaurant lead, sendable pitch copy, and a generated food asset to include in outreach.</p>
+      <div class="cards three">
+        <div class="card"><strong>Input</strong><p>A single Band message from the user.</p></div>
+        <div class="card"><strong>Agent work</strong><p>Research, inspection, copywriting, design, and delivery.</p></div>
+        <div class="card"><strong>Action</strong><p>The user sends the pitch manually to the restaurant contact path.</p></div>
+      </div>
+      <div class="footer">Restaura / Demo Prompt</div>
+    </section>
+  </body>
+</html>

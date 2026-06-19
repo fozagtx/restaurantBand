@@ -29,7 +29,7 @@ export function parseHandoffPayload<T>(text: string, schema: z.ZodType<T>, metad
     if (result.success) return result.data;
   }
   const id = extractHandoffId(text);
-  throw new Error(id ? `Handoff ${id} is missing or expired in this worker process.` : "Message did not contain a valid Restaura handoff.");
+  throw new Error(id ? `Handoff ${id} is missing or expired in this worker process.` : "Message lacked a valid Restaura handoff.");
 }
 
 export function isRestauraHandoffMessage(text: string): boolean {

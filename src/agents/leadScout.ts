@@ -28,7 +28,7 @@ export function createLeadScoutAdapter(): GenericAdapter {
     const research = await findRestaurantCandidates({ ...task, config });
     if (!research.leads.length) {
       await tools.sendMessage(
-        `Lead Scout found no qualified ${task.cuisine} prospects in ${task.location}. I did not hand off to design because the workflow only moves contactable leads with visual/menu evidence forward.`,
+        `Lead Scout found zero qualified ${task.cuisine} prospects in ${task.location}. Handoff stopped because Restaura moves contactable leads with visual/menu evidence forward.`,
         [{ id: message.senderId }]
       );
       return;

@@ -8,13 +8,13 @@ Restaura is a Band-powered agent workflow that finds validated restaurant leads,
 
 ## Long Description
 
-Restaura helps a small restaurant marketing owner find a few real prospects per day instead of a long noisy list. A Lead Scout searches live restaurant websites through Exa, validates the official site, and rejects mismatched or thin results. A Visual Inspector audits public food/menu images with Featherless vision and keeps only leads where better menu food assets could help. A Pitch Copywriter turns the evidence into concise cold email, DM, and SMS copy built to start a client conversation. A Food Design Director creates food-photography directions and, when needed, uses OpenAI Images to generate a PNG food asset. Band coordinates the agent handoffs and progress updates, while Telegram is reserved for final output delivery.
+Restaura helps a small restaurant marketing owner find a capped daily batch of real prospects from live restaurant sites. A Lead Scout searches with Exa, validates the official site, and rejects mismatched or thin results. A Visual Inspector audits public food/menu images with Featherless vision and keeps leads where better menu food assets could help. A Pitch Copywriter turns the evidence into concise cold email, DM, and SMS copy built to start a client conversation. A Food Design Director creates food-photography directions and, when needed, uses OpenAI Images to generate a PNG food asset. Band coordinates the agent handoffs and progress updates, while Telegram is reserved for final output delivery.
 
 ## Agents
 
 - `Lead Scout`: finds up to two validated, contactable restaurant leads.
 - `Visual Inspector`: checks real public image URLs with Featherless vision.
-- `Pitch Copywriter`: writes short outreach copy based only on verified evidence.
+- `Pitch Copywriter`: writes short outreach copy from verified evidence.
 - `Food Design Director`: creates image direction and generated PNG assets for the final pitch.
 
 ## Setup
@@ -82,7 +82,7 @@ Trigger the workflow from a Band room:
 @Lead Scout find 1 restaurant in Austin, TX with bad food/menu images
 ```
 
-Band shows short progress updates. It does not post raw JSON, chain-of-thought, or internal handoff payloads.
+Band shows short progress updates. Raw JSON, chain-of-thought, and internal handoff payloads stay out of Band.
 
 Telegram is output-only. It receives the final lead sheet and generated image asset after the Band workflow completes.
 
@@ -94,7 +94,7 @@ Railway reads `railway.json`, builds the project, and starts the long-running wo
 npm run start
 ```
 
-Set the `.env` values in Railway, plus these Band agent credentials. `agent_config.yaml` is ignored locally and is not deployed to Railway.
+Set the `.env` values in Railway, plus these Band agent credentials. `agent_config.yaml` stays local; Railway needs environment variables.
 
 ```bash
 BAND_LEAD_SCOUT_AGENT_ID
@@ -112,7 +112,7 @@ BAND_FOOD_DESIGN_DIRECTOR_API_KEY
 - Missing count defaults to 2.
 - Requests above 2 are capped at 2.
 - Leads are rejected if the official website cannot be validated.
-- The app fails instead of inventing restaurants when Exa is unavailable.
+- The app exits when Exa is unavailable and never fabricates restaurants.
 - Visual claims require usable public image URLs.
-- OpenAI Images is used only when Featherless does not return a rendered image.
+- OpenAI Images handles rendered image generation after Featherless creates the asset direction.
 - Local pipeline JSON output is disabled unless `--write-json` is passed.

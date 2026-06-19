@@ -21,7 +21,7 @@ export function createFoodDesignDirectorAdapter(): GenericAdapter {
     const config = loadConfig({ requireFeatherless: true, requireTelegram: true });
     const copyPackage = parseHandoffPayload(message.content, copyPackageSchema, message.metadata);
     if (!copyPackage.copy.length) {
-      await tools.sendMessage("Food Design Director received zero copy packs, so no design package was sent to Telegram.", [{ id: message.senderId }]);
+      await tools.sendMessage("Food Design Director received zero copy packs. Design delivery skipped.", [{ id: message.senderId }]);
       return;
     }
     await reportProgress(tools, `🎨 Food Design Director: building image assets for ${copyPackage.copy.length} lead${copyPackage.copy.length === 1 ? "" : "s"}.`);

@@ -211,7 +211,7 @@ export async function findRestaurantCandidates(input: {
     notes.push(`Skipped ${skippedUnqualified} candidate websites that lacked a usable contact path or visual/menu evidence.`);
   }
   if (leads.length < targetLimit) {
-    notes.push(`Only ${leads.length} qualified candidates were found for this request; the workflow does not pad with weak leads.`);
+    notes.push(`Qualified candidates found for this request: ${leads.length}. The workflow keeps the batch strict and skips weak leads.`);
   }
 
   return {
@@ -223,7 +223,7 @@ export async function findRestaurantCandidates(input: {
     generatedAt: nowIso(),
     exaRequestCount: client.requestCount,
     leads,
-    notes: leads.length ? notes : [...notes, "Exa returned no qualified official restaurant websites for this query."],
+    notes: leads.length ? notes : [...notes, "Exa returned zero qualified official restaurant websites for this query."],
     collaborationLog: [
       action(
         "Lead Scout",
@@ -258,7 +258,7 @@ async function validateOfficialWebsite(url: string, expectedName: string): Promi
       headers: { "User-Agent": "restaura/0.1 website-validator" },
       signal: controller.signal
     });
-    if (!response.ok) return { ok: false, reason: `official website did not load (${response.status})` };
+    if (!response.ok) return { ok: false, reason: `official website load failed (${response.status})` };
     const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
     if (!contentType.includes("text/html")) return { ok: false, reason: `official website returned ${contentType || "non-HTML content"}` };
     const html = await response.text();
@@ -291,7 +291,7 @@ function rejectWebsiteReason(html: string, url: string, expectedName: string): s
   const domain = cleanDomain(url).replace(/[^a-z0-9]/g, " ");
   const searchable = `${visibleText} ${domain}`.toLowerCase();
   if (brandTokens.length && !brandTokens.some((token) => searchable.includes(token))) {
-    return `official website content does not match candidate name "${expectedName}"`;
+    return `official website content mismatches candidate name "${expectedName}"`;
   }
   return null;
 }

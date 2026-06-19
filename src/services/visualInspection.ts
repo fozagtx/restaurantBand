@@ -33,13 +33,13 @@ export async function inspectCandidatePacket(packet: CandidateResearchPacket, co
     if (isOutreachReady(candidate, imageAudit, scored.score)) {
       leads.push(inspectedLead);
     } else {
-      notes.push(`${candidate.name} was inspected but not moved to copy/design because it lacked validated weak visual evidence or a reliable contact path.`);
+      notes.push(`${candidate.name} was inspected and held back from copy/design because validated weak visual evidence or a reliable contact path was missing.`);
     }
     log.push(
       action(
         "Visual Inspector",
         "featherless_vision_audit",
-        `${candidate.name}: ${imageAudit.status === "audited" ? `${imageAudit.verdict}, boring score ${imageAudit.boringScore}/100` : "no usable image evidence; no visual boring claim made"}.`
+        `${candidate.name}: ${imageAudit.status === "audited" ? `${imageAudit.verdict}, boring score ${imageAudit.boringScore}/100` : "usable image evidence missing; visual weakness claim skipped"}.`
       )
     );
   }
@@ -98,7 +98,7 @@ function scoreVisualOpportunity(candidate: CandidateLead, imageAudit: ImageAudit
     reasons.push(...imageAudit.photoIssues.slice(0, 2));
   } else {
     score += 5;
-    reasons.push("no visual boredom claim: Exa returned no usable image evidence for Featherless vision audit");
+    reasons.push("visual weakness claim skipped: Exa returned zero usable image evidence for Featherless vision audit");
   }
   if (candidate.emails.length) {
     score += 7;

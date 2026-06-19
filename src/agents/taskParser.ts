@@ -13,7 +13,7 @@ export type ResearchTask = {
 export async function parseResearchTask(message: string, config = loadConfig({ requireFeatherless: true })): Promise<ResearchTask> {
   const normalizedMessage = message.replace(/@\[\[[^\]]+]]/g, "").trim();
   const prompt = `Extract the restaurant lead-search task from this user or agent message.
-Return only JSON with:
+Return strict JSON with:
 {
   "location": "city/area",
   "cuisine": "restaurant category or cuisine",
@@ -40,13 +40,13 @@ Required:
   - smart -> auto
   - deep -> deep
   - if the user explicitly says "deep reasoning", "very deep", or "highest reasoning", use exaSearchType deep-reasoning while searchMode remains deep.
-- If location or cuisine/category is missing, return JSON with an "error" key instead of guessing.
-- Do not include <think>, explanation, markdown, or prose.
+- If location or cuisine/category is missing, return JSON with an "error" key and leave parsed fields unset.
+- Omit <think>, explanation, markdown, and prose.
 - Your entire response must be one JSON object.`;
 
   const output = await runFeatherlessChat({
     config,
-    system: `You are the Featherless-powered task parser for a Band research agent. Extract explicit location and cuisine/category. Default missing count to ${DAILY_VALIDATED_LEAD_TARGET} and missing search depth to smart. Return only one compact JSON object and no reasoning text.`,
+    system: `You are the Featherless-powered task parser for a Band research agent. Extract explicit location and cuisine/category. Default missing count to ${DAILY_VALIDATED_LEAD_TARGET} and missing search depth to smart. Return one compact JSON object; omit reasoning text.`,
     user: prompt,
     temperature: 0.1,
     maxTokens: 900
@@ -54,7 +54,7 @@ Required:
   const fallbackParsed = parseExplicitTaskFromText(normalizedMessage);
   const parsed = mergeParsedTask(parseTaskJson(output), fallbackParsed);
   if (!parsed) {
-    throw new Error(`Featherless task parser returned no usable JSON and the message did not contain explicit location/cuisine fields: ${output}`);
+    throw new Error(`Featherless task parser returned unusable JSON and the message lacked explicit location/cuisine fields: ${output}`);
   }
   if (parsed.error) {
     if (!fallbackParsed) throw new Error(`Task is missing required search details: ${parsed.error}`);

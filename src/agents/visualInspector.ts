@@ -25,7 +25,7 @@ export function createVisualInspectorAdapter(): GenericAdapter {
     const researchPacket = researchPacketSchema.parse(await inspectCandidatePacket(candidatePacket, config));
     if (!researchPacket.leads.length) {
       await tools.sendMessage(
-        "Visual Inspector found no validated visual-refresh leads in this packet. Nothing was sent to copy/design because every candidate lacked usable weak visual evidence or a reliable contact path.",
+        "Visual Inspector found zero validated visual-refresh leads in this packet. Copy/design handoff stopped because every candidate lacked usable weak visual evidence or a reliable contact path.",
         [{ id: message.senderId }]
       );
       return;

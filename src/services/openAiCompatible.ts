@@ -72,7 +72,7 @@ export async function createChatCompletion(options: ChatCompletionOptions): Prom
     };
     const content = data.choices?.[0]?.message?.content;
     if (typeof content !== "string" || !content.trim()) {
-      throw new Error("Chat completion returned no text content.");
+      throw new Error("Chat completion returned empty text content.");
     }
     return content.trim();
   }

@@ -32,8 +32,8 @@ export async function auditRestaurantImages(input: {
       verdict: "not_enough_visual_evidence",
       reasons: [
         candidateImageUrls.length
-          ? "Exa returned image URL candidates, but none responded as usable image files during preflight."
-          : "Exa returned no image URLs, so the system did not visually judge the food photography."
+          ? "Exa returned image URL candidates, but preflight rejected them as image files."
+          : "Exa returned zero image URLs; visual audit needs public food/menu photos."
       ],
       photoIssues: [],
       usableVisualHooks: [],
@@ -48,20 +48,20 @@ Website: ${input.website}
 Cuisine/category: ${input.cuisine}
 Location: ${input.location}
 
-Return only JSON:
+Return strict JSON:
 {
   "boringScore": 0-100,
   "verdict": "boring" | "average" | "strong" | "unclear",
-  "reasons": ["visual evidence only"],
+  "reasons": ["image evidence"],
   "photoIssues": ["lighting/composition/plating/cropping/color/low-resolution issues if visible"],
   "usableVisualHooks": ["what could be improved in a pitch"],
   "suggestedUpgrade": "one concise visual refresh direction"
 }
 
 Rules:
-- Judge only the images supplied in this request.
-- Do not use website text as proof that a photo is boring.
-- If the images are not clearly food/menu photos, use verdict "unclear" and a low-to-mid boringScore.
+- Judge the images supplied in this request.
+- Use image pixels as evidence; website text cannot qualify a photo.
+- For images outside food/menu photography, use verdict "unclear" and a low-to-mid boringScore.
 - boringScore 0 means visually strong, 100 means very weak/boring.
 - Be blunt but factual.`;
 
@@ -72,14 +72,14 @@ Rules:
 
   const output = await runFeatherlessVision({
     config: input.config,
-    system: "You are a strict restaurant food photography auditor. You can only judge images actually provided to you.",
+    system: "You are a strict restaurant food photography auditor. Judge the images actually provided to you.",
     userContent: content,
     temperature: 0.1,
     maxTokens: 1400
   });
   const parsed = parseJsonObject<VisionAuditResponse>(output);
   if (!parsed) {
-    throw new Error(`Featherless vision audit returned no JSON: ${output}`);
+    throw new Error(`Featherless vision audit returned empty JSON: ${output}`);
   }
   const suggestedUpgrade = optionalString(parsed.suggestedUpgrade) ?? "Use tighter lighting, cleaner composition, and a more appetite-led food crop.";
   const photoIssues = optionalStringArray(parsed.photoIssues) ?? [suggestedUpgrade];
@@ -90,7 +90,7 @@ Rules:
     auditedImageUrls,
     boringScore: normalizeScore(parsed.boringScore),
     verdict: normalizeVerdict(parsed.verdict),
-    reasons: optionalStringArray(parsed.reasons) ?? ["visual evidence only"],
+    reasons: optionalStringArray(parsed.reasons) ?? ["image evidence"],
     photoIssues,
     usableVisualHooks: optionalStringArray(parsed.usableVisualHooks) ?? [suggestedUpgrade],
     suggestedUpgrade

@@ -19,16 +19,16 @@ export function createPitchCopywriterAdapter(): GenericAdapter {
     const config = loadConfig({ requireFeatherless: true });
     const research = parseHandoffPayload(message.content, researchPacketSchema, message.metadata);
     if (!research.leads.length) {
-      await tools.sendMessage("Pitch Copywriter received zero validated leads, so no copy package was created.", [{ id: message.senderId }]);
+      await tools.sendMessage("Pitch Copywriter received zero validated leads. Copy package skipped.", [{ id: message.senderId }]);
       return;
     }
-    await reportProgress(tools, `✍️ Pitch Copywriter: writing owner-ready copy for ${research.leads.length} lead${research.leads.length === 1 ? "" : "s"}.`);
+    await reportProgress(tools, `✍️ Pitch Copywriter: writing restaurant pitch copy for ${research.leads.length} lead${research.leads.length === 1 ? "" : "s"}.`);
     const copyPackage = copyPackageSchema.parse(await composeCopyPackage(research, config));
     await sendHandoff(
       tools,
       config.designAgentMention,
       "designer",
-      "Pitch Copywriter finished the owner-ready copy. Create the image asset package and deliver the digest to Telegram.",
+      "Pitch Copywriter finished the restaurant pitch copy. Create the image asset package and deliver the digest to Telegram.",
       copyPackage
     );
   }));

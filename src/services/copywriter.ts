@@ -77,7 +77,7 @@ async function composeOutreachCopy(lead: RestaurantLead, config: RuntimeConfig):
       "You are a senior restaurant growth copywriter and food-creative director.",
       "You write owner-to-owner outreach for independent restaurants.",
       "You diagnose one visible menu/photo merchandising problem, connect it to online ordering or inquiry friction, and offer a small concrete fix.",
-      "Return valid JSON only. No markdown, no reasoning, no preface."
+      "Return a valid JSON object; omit markdown, reasoning, and preface."
     ].join(" "),
     user: prompt,
     temperature: 0.35,
@@ -85,7 +85,7 @@ async function composeOutreachCopy(lead: RestaurantLead, config: RuntimeConfig):
   });
   const parsed = parseJsonObject<LlmCopyResponse>(content);
   if (!parsed) {
-    console.warn(`[Pitch Copywriter] Featherless returned no copy JSON for ${lead.name}; using evidence-bound fallback copy.`);
+    console.warn(`[Pitch Copywriter] Featherless returned empty copy JSON for ${lead.name}; using evidence-bound copy.`);
     return composeFallbackOutreachCopy(lead, config);
   }
   try {
@@ -108,13 +108,13 @@ async function composeOutreachCopy(lead: RestaurantLead, config: RuntimeConfig):
 
 function buildExpertCopyPrompt(lead: RestaurantLead, config: RuntimeConfig): string {
   return `Write concise outreach copy for this restaurant lead.
-Return only JSON with keys emailSubjects, coldEmail, instagramDm, smsVariant, personalizationNotes.
+Return strict JSON with keys emailSubjects, coldEmail, instagramDm, smsVariant, personalizationNotes.
 
 Expertise activation:
 - Think like a restaurant revenue operator, menu merchandiser, and food photography art director.
 - Diagnose the specific visible friction from the audit: weak hero image, flat/underlit food, distracting background, menu doing too much work, missing social-ready crop, or poor mobile first impression.
 - Convert the diagnosis into a small offer: 2 concrete mockups, one stronger hero/menu image and one social/menu crop.
-- The owner should feel "this person looked at my restaurant and knows the exact next asset I need," not "this is a generic agency pitch."
+- The owner should feel "this person looked at my restaurant and knows the exact next asset I need."
 
 Restaurant lead JSON:
 ${JSON.stringify(lead, null, 2)}
@@ -122,16 +122,16 @@ ${JSON.stringify(lead, null, 2)}
 Agency: ${config.agencyName}
 
 Hard rules:
-- Do not mention model names, AI providers, audit scores, "boring score", or internal research.
-- Do not use these phrases: ${bannedCopyPhrases.join(", ")}.
-- Do not invent metrics, relationships, dish names, awards, or menu items not present in the lead.
-- Do not insult the restaurant or call the food/photos bad.
+- Keep model names, AI providers, audit scores, "boring score", and internal research out of customer copy.
+- Exclude these phrases: ${bannedCopyPhrases.join(", ")}.
+- Use facts present in the lead; leave out invented metrics, relationships, dish names, awards, and menu items.
+- Keep the tone respectful; describe the image issue and the practical fix.
 - Lead with one observed issue and one practical fix.
 - Cold email: under 120 words, 3 short paragraphs max, plain English.
 - Instagram DM: under 300 characters.
 - SMS: under 220 characters.
 - Subject lines: under 45 characters each.
-- Use no hype, no exclamation marks, no filler.`;
+- Use plain language: zero hype, zero exclamation marks, zero filler.`;
 }
 
 function composeFallbackOutreachCopy(lead: RestaurantLead, config: RuntimeConfig): OutreachCopy {
@@ -193,7 +193,7 @@ function buildOwnerSafeIssue(lead: RestaurantLead): string {
     return "some current food/menu visuals look low-resolution in places";
   }
   if (/no food( photography)?|no food or menu items shown/i.test(cleaned)) {
-    return "the current page does not show the food early enough";
+    return "the current page delays the food image";
   }
   if (cleaned) return `the current food/menu visuals could be stronger: ${cleaned}`;
   return "the current food/menu visuals could use a stronger first impression";
@@ -226,21 +226,21 @@ function assertExpertCopy(copy: OutreachCopy): void {
     ...copy.personalizationNotes
   ].join("\n").toLowerCase();
   const banned = bannedCopyPhrases.find((phrase) => joined.includes(phrase));
-  if (banned) throw new Error(`copy used banned generic/internal phrase "${banned}"`);
+  if (banned) throw new Error(`copy used banned weak/internal phrase "${banned}"`);
   if (copy.emailSubjects.length < 3) {
-    throw new Error("copy did not include three subject lines.");
+    throw new Error("copy is missing three subject lines.");
   }
   if (/\b(enhance|boost|elevate|transform|captivate)\b/i.test(copy.emailSubjects.join(" "))) {
-    throw new Error("subject lines used generic agency verbs.");
+    throw new Error("subject lines used weak agency verbs.");
   }
   if (/\[(your name|name|agency)\]/i.test(joined)) {
     throw new Error("copy included unresolved placeholder text.");
   }
   if (!/^hi\s+/i.test(copy.coldEmail.trim())) {
-    throw new Error("coldEmail did not start with a direct owner greeting.");
+    throw new Error("coldEmail must start with a direct owner greeting.");
   }
   if (!/\b(can i send|should i send|want me to send|send them here)\b/i.test(`${copy.coldEmail}\n${copy.instagramDm}\n${copy.smsVariant}`)) {
-    throw new Error("copy did not include a simple send-the-mockups CTA.");
+    throw new Error("copy is missing a simple send-the-mockups CTA.");
   }
   if (copy.coldEmail.split(/\s+/).filter(Boolean).length > 140) {
     throw new Error("coldEmail was too long for expert outreach.");

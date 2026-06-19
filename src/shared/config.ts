@@ -50,7 +50,7 @@ export function loadConfig(options: { requireExa?: boolean; requireFeatherless?:
   };
 
   if (options.requireExa && !config.exaApiKey) {
-    throw new Error("EXA_API_KEY is required. This project does not generate mock restaurant leads.");
+    throw new Error("EXA_API_KEY is required. Mock restaurant leads are disabled.");
   }
   if (options.requireFeatherless && (!config.featherlessApiKey || !config.featherlessChatModel || !config.featherlessVisionModel || !config.featherlessImageModel)) {
     throw new Error("FEATHERLESS_API_KEY, FEATHERLESS_CHAT_MODEL, FEATHERLESS_VISION_MODEL, and FEATHERLESS_IMAGE_MODEL are required.");
@@ -59,7 +59,7 @@ export function loadConfig(options: { requireExa?: boolean; requireFeatherless?:
     throw new Error("TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are required for delivery.");
   }
   if (!config.agencyName) {
-    throw new Error("AGENCY_NAME is required. Set your actual owner/agency name; no placeholder default is used.");
+    throw new Error("AGENCY_NAME is required. Set your actual owner/agency name; placeholder defaults are disabled.");
   }
 
   return config;

@@ -44,13 +44,13 @@ export async function createDesignPackage(copyPackage: CopyPackage, config = loa
 async function createDesignConcept(lead: RestaurantLead, config: RuntimeConfig): Promise<DesignConcept> {
   const fallbackPrompts = buildFallbackPrompts(lead);
   const featherlessOutput = await callFeatherlessImageModel(lead, fallbackPrompts, config).catch((error) => {
-    console.warn(`[Food Design Director] Featherless design call failed for ${lead.name}; using fallback prompts before OpenAI image fallback: ${error instanceof Error ? error.message : String(error)}`);
+    console.warn(`[Food Design Director] Featherless design call failed for ${lead.name}; continuing with deterministic prompts and OpenAI image generation: ${error instanceof Error ? error.message : String(error)}`);
     return "";
   });
   if (!featherlessOutput) return createConceptWithOpenAiFallback(lead, fallbackPrompts, fallbackPrompts[2] ?? fallbackPrompts[0], [], config);
   const parsed = parseJsonObject<FeatherlessPromptResponse>(featherlessOutput);
   if (!parsed) {
-    console.warn(`[Food Design Director] Featherless design model returned no JSON for ${lead.name}; using fallback prompts before OpenAI image fallback.`);
+    console.warn(`[Food Design Director] Featherless design model returned empty JSON for ${lead.name}; continuing with deterministic prompts and OpenAI image generation.`);
     return createConceptWithOpenAiFallback(lead, fallbackPrompts, fallbackPrompts[2] ?? fallbackPrompts[0], [], config);
   }
   let imagePrompts: string[];
@@ -59,7 +59,7 @@ async function createDesignConcept(lead: RestaurantLead, config: RuntimeConfig):
     imagePrompts = requirePrompts(parsed.imagePrompts);
     menuFooterPrompt = requireText(parsed.menuFooterPrompt, "menuFooterPrompt");
   } catch (error) {
-    console.warn(`[Food Design Director] Featherless design JSON was incomplete for ${lead.name}; using fallback prompts before OpenAI image fallback: ${error instanceof Error ? error.message : String(error)}`);
+    console.warn(`[Food Design Director] Featherless design JSON was incomplete for ${lead.name}; continuing with deterministic prompts and OpenAI image generation: ${error instanceof Error ? error.message : String(error)}`);
     return createConceptWithOpenAiFallback(lead, fallbackPrompts, fallbackPrompts[2] ?? fallbackPrompts[0], [], config);
   }
   const generatedAssets = await extractGeneratedAssets(parsed, featherlessOutput, lead);
@@ -114,14 +114,14 @@ function buildOpenAiImagePrompt(lead: RestaurantLead, basePrompt: string): strin
     `Create a finished, premium restaurant marketing image for ${lead.name}.`,
     "Act like a senior food photographer shooting a real web/menu hero asset: appetite first, clear focal dish, controlled props, believable restaurant table setting.",
     "Use directional natural light, crisp texture, shallow depth of field, warm highlights, clean negative space for real HTML text, and a crop that works on mobile.",
-    "Avoid fake text, logos, watermarks, menus, signage, hands, distorted plates, plastic-looking food, and over-styled stock-photo compositions.",
+    "Use a text-free, logo-free, watermark-free, sign-free scene with real-looking plated food, natural plate geometry, and restaurant-grade styling.",
     `Cuisine/category: ${lead.cuisine}. Location context: ${lead.location}. Visual issue to solve: ${buildDesignIssue(lead)}.`
   ].join("\n");
 }
 
 async function generateOpenAiImageAsset(prompt: string, restaurantName: string, config: RuntimeConfig): Promise<GeneratedAsset> {
   if (!config.openAiApiKey) {
-    throw new Error("OpenAI image fallback is required because Featherless returned no rendered image, but OPENAI_API_KEY is not set.");
+    throw new Error("OpenAI image generation needs OPENAI_API_KEY because Featherless returned prompts without rendered image data.");
   }
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 120_000);
@@ -153,7 +153,7 @@ async function generateOpenAiImageAsset(prompt: string, restaurantName: string, 
     if (image?.url) {
       return { kind: "image_url", value: image.url };
     }
-    throw new Error(`OpenAI image generation returned no image data: ${bodyText}`);
+    throw new Error(`OpenAI image generation returned empty image data: ${bodyText}`);
   } finally {
     clearTimeout(timeout);
   }
@@ -167,7 +167,7 @@ async function callFeatherlessImageModel(lead: RestaurantLead, fallbackPrompts: 
   const prompt = `You are the senior food photography art director for this restaurant lead.
 
 Use the restaurant research below to create image-generation-ready assets for outreach.
-Return only JSON with:
+Return strict JSON with:
 {
   "imagePrompts": ["2-3 production image prompts"],
   "menuFooterPrompt": "one footer/banner prompt",
@@ -178,15 +178,15 @@ Return only JSON with:
 
 Expertise activation:
 - Think like a restaurant menu merchandiser, food stylist, and conversion-focused web designer.
-- Solve the exact weakness from the image audit instead of writing a generic food prompt.
+- Tie every prompt to the exact weakness from the image audit.
 - Design for the assets a small restaurant owner can actually use tomorrow: website hero/menu banner, Instagram square, and menu/footer background.
 - Specify lighting, angle, crop, focal hierarchy, surface/plate context, texture cues, and negative space.
 
 Hard rules:
-- Do not invent exact dish names unless the evidence says them.
-- Do not render text, logos, fake menu boards, signage, watermarks, brand marks, or claims.
-- Do not mention model names or internal audit scores in the prompts.
-- If you cannot return an actual image binary/URL, return strong prompts only.
+- Use dish names from evidence; otherwise describe cuisine/category.
+- Keep scenes text-free, logo-free, watermark-free, claim-free, brand-mark-free, and free of menu boards or signage.
+- Keep model names and internal audit scores out of the prompts.
+- When an actual image binary/URL is unavailable, return strong prompts.
 - Keep each prompt under 95 words.
 
 Restaurant lead:
@@ -200,7 +200,7 @@ ${fallbackPrompts.map((item, index) => `${index + 1}. ${item}`).join("\n")}`;
     baseUrl: config.featherlessBaseUrl,
     model: config.featherlessImageModel,
     messages: [
-      { role: "system", content: "You are a senior food photography art director and restaurant web conversion designer. Return valid JSON only." },
+      { role: "system", content: "You are a senior food photography art director and restaurant web conversion designer. Return a valid JSON object; omit analysis prose." },
       { role: "user", content: prompt }
     ],
     temperature: config.featherlessTemperature,
@@ -212,9 +212,9 @@ function buildFallbackPrompts(lead: RestaurantLead): string[] {
   const sourceHint = lead.imageUrls[0] ? `Current search image reference for visual context: ${lead.imageUrls[0]}.` : "";
   const designIssue = buildDesignIssue(lead);
   return [
-    `Website hero/menu image for ${lead.name}, a ${lead.cuisine} restaurant in ${lead.location}. Solve this visual issue: ${designIssue}. Shoot a real plated dish in a 3/4 angle, natural side light, crisp texture, warm highlights, shallow depth of field, mobile-safe negative space, believable restaurant table setting, no text, no logos. ${sourceHint}`,
-    `Square Instagram crop for ${lead.name}. Close, appetite-led composition with one clear focal dish, visible texture, restrained garnish, clean plate edge, soft background, warm side light, no rendered text, no fake signage, no logos. Designed to make the menu item easy to choose in a social feed.`,
-    `Wide 3:1 menu/footer background for ${lead.name}. Low-contrast close-up of plated ${lead.cuisine} food and ingredients along the edges, calm center/right negative space for real HTML contact text, realistic restaurant lighting, no rendered text, no logos, no menu board.`
+    `Website hero/menu image for ${lead.name}, a ${lead.cuisine} restaurant in ${lead.location}. Solve this visual issue: ${designIssue}. Shoot a real plated dish in a 3/4 angle, natural side light, crisp texture, warm highlights, shallow depth of field, mobile-safe negative space, believable restaurant table setting, text-free and logo-free. ${sourceHint}`,
+    `Square Instagram crop for ${lead.name}. Close, appetite-led composition with one clear focal dish, visible texture, restrained garnish, clean plate edge, soft background, warm side light, text-free, signage-free, logo-free. Designed to make the menu item easy to choose in a social feed.`,
+    `Wide 3:1 menu/footer background for ${lead.name}. Low-contrast close-up of plated ${lead.cuisine} food and ingredients along the edges, calm center/right negative space for real HTML contact text, realistic restaurant lighting, text-free, logo-free, menu-board-free.`
   ];
 }
 
@@ -228,7 +228,7 @@ function buildDesignIssue(lead: RestaurantLead): string {
     .replace(/\s+/g, " ")
     .trim();
   if (/no food( photography)?|no food or menu items shown/i.test(cleaned)) {
-    return "the current page does not show the food early enough";
+    return "the current page delays the food image";
   }
   return cleaned || "the current food/menu visuals need a stronger first impression";
 }

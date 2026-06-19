@@ -18,13 +18,13 @@ export function loadBandAgentConfig(agentKey: string): AgentCredentials {
   const apiKey = isPlaceholder(config.apiKey) ? envConfig.apiKey : config.apiKey;
   if (!agentId || isPlaceholder(agentId)) {
     throw new Error(
-      `${agentKey} is missing a real Band agent ID. agent_config.yaml is local-only and is not deployed to Railway. ` +
+      `${agentKey} is missing a real Band agent ID. agent_config.yaml stays local; Railway needs environment variables. ` +
         `Set one of these Railway variables: ${getBandAgentEnvNames(agentKey, "AGENT_ID").join(", ")}.`
     );
   }
   if (!apiKey || isPlaceholder(apiKey)) {
     throw new Error(
-      `${agentKey} is missing its Band API key. agent_config.yaml is local-only and is not deployed to Railway. ` +
+      `${agentKey} is missing its Band API key. agent_config.yaml stays local; Railway needs environment variables. ` +
         `Set one of these Railway variables: ${getBandAgentEnvNames(agentKey, "API_KEY").join(", ")}.`
     );
   }
